@@ -202,6 +202,22 @@ a{{color:#009485}}</style></head><body>
 
 # ---------------- Route handlers ----------------
 
+def _validate_oauth_target(params) -> JSONResponse | None:
+    """This issuer serves one resource and one scope, including on refresh."""
+    resources = params.getlist("resource")
+    if resources and resources != [get_settings().resource]:
+        return JSONResponse({"error": "invalid_target"}, status_code=400)
+    if resources and get_settings().audience != get_settings().resource:
+        return JSONResponse(
+            {"error": "server_error", "error_description": "OAuth resource audience misconfigured"},
+            status_code=500,
+        )
+    scopes = params.getlist("scope")
+    if scopes and (len(scopes) != 1 or scopes[0].split() != ["mcp"]):
+        return JSONResponse({"error": "invalid_scope"}, status_code=400)
+    return None
+
+
 async def metadata_authorization_server(request: Request) -> JSONResponse:
     iss = get_settings().issuer
     return JSONResponse(
@@ -281,6 +297,9 @@ async def register_client(request: Request) -> JSONResponse:
 
 async def authorize(request: Request) -> Response:
     params = request.query_params
+    target_error = _validate_oauth_target(params)
+    if target_error is not None:
+        return target_error
     required = ("response_type", "client_id", "redirect_uri")
     if any(p not in params for p in required):
         return JSONResponse(
@@ -327,7 +346,7 @@ async def authorize(request: Request) -> Response:
     sep = "&" if "?" in params["redirect_uri"] else "?"
     target = f"{params['redirect_uri']}{sep}code={code}"
     if "state" in params:
-        target += f"&state={params['state']}"
+        target += "&" + urlencode({"state": params["state"]})
     return RedirectResponse(target, status_code=302)
 
 
@@ -385,6 +404,9 @@ async def login(request: Request) -> Response:
 
 async def token(request: Request) -> JSONResponse:
     form = await request.form()
+    target_error = _validate_oauth_target(form)
+    if target_error is not None:
+        return target_error
     grant_type = form.get("grant_type")
 
     if grant_type == "authorization_code":
@@ -456,8 +478,8 @@ async def _grant_refresh_token(form, request: Request) -> JSONResponse:
     if not refresh_raw:
         return JSONResponse({"error": "invalid_request"}, status_code=400)
     refresh_hash = hashlib.sha256(refresh_raw.encode()).hexdigest()
-    record = await storage.consume_refresh_token(refresh_hash)
-    if not record or record["client_id"] != client_id:
+    record = await storage.consume_refresh_token(refresh_hash, client_id)
+    if not record:
         return JSONResponse({"error": "invalid_grant"}, status_code=400)
     access, ttl = _issue_access_token(record["user_id"], client_id, record["scope"])
     new_raw, new_hash = _issue_refresh_token()

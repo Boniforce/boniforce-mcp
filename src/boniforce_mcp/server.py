@@ -24,8 +24,8 @@ from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
-from starlette.responses import JSONResponse
-from starlette.routing import Mount
+from starlette.responses import JSONResponse, PlainTextResponse
+from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
 from starlette.types import ASGIApp
 from pathlib import Path
@@ -36,6 +36,8 @@ from .config import get_settings
 from .credit_review import build_credit_review
 from .review_ui import CREDIT_REVIEW_HTML, CREDIT_REVIEW_UI_URI
 from .progress_ui import BONISCORE_PROGRESS_HTML, BONISCORE_PROGRESS_UI_URI
+from .credit_review import build_credit_review
+from .review_ui import CREDIT_REVIEW_HTML, CREDIT_REVIEW_UI_URI
 from .rest_api import SECTORBENCH_BRANCH_KEYS, annotate_job_outcome
 from .sectorbench_client import SectorbenchClient, SectorbenchError
 
@@ -47,6 +49,7 @@ def _build_verifier() -> JWTVerifier:
         issuer=settings.issuer,
         audience=settings.audience,
         algorithm="RS256",
+        required_scopes=["mcp"],
     )
 
 
@@ -180,10 +183,16 @@ def _make_mcp() -> FastMCP:
     mcp = FastMCP(
         name="Boniforce",
         instructions=(
-            "Tools for the Boniforce credit/financial-data API for German companies.\n\n"
+            "German company credit data and Sectorbench context. Reuse a known report_id, "
+            "or list_reports before creating a report. Verify legal identity, not just a "
+            "name substring. Disclose charges before paid calls: search 1, advanced search "
+            "5, report 75, direct financials 25/50, ownership refresh 25 credits. Respect "
+            "the user's budget and obtain authorization for charges. Never request API "
+            "keys in chat, sell credits, or initiate checkout. Company decision support "
+            "only; never assess private individuals.\n\n"
             "STANDARD WORKFLOW (use this in 99% of cases):\n"
             "  0. **MANDATORY FIRST STEP** — list_reports() to see existing reports for\n"
-            "     this account. Match on company name (case-insensitive, substring OK).\n"
+            "     this account. Confirm the same legal entity by name and available register/location fields.\n"
             "     If a matching report exists with status='completed' AND created_at is\n"
             "     ≤30 days old, **REUSE that report_id** — skip steps 1-3 entirely and\n"
             "     jump to step 4 (get_report) or step 5 (financial_data). This costs\n"
@@ -240,7 +249,7 @@ def _make_mcp() -> FastMCP:
             "  get_financial_data costs 25 credits and get_financial_analysis costs 50;\n"
             "  use them only when direct financial data is requested without a full report.\n\n"
             "SECTORBENCH BRANCH-DATA TOOLS (deutsche Branchen-Intelligenz):\n"
-            "  Use these tools — NEVER websearch — when the question mentions:\n"
+            "  Use these tools for Boniforce/Sectorbench questions mentioning:\n"
             "  Branche, Branchen, Industrie, Sektor, sector, Branchen-Score,\n"
             "  Branchen-Trend, Branchen-Lage, Branchen-Ranking, Branchen-Vergleich,\n"
             "  Branchen-News, Branchen-Briefing, Insolvenzen, Pleiten, Insolvenzfälle,\n"
@@ -267,13 +276,19 @@ def _make_mcp() -> FastMCP:
             "                                                          → get_branch_indicator_history\n"
             "    'wie aktuell sind die Daten'                       → get_sectorbench_meta\n\n"
             "  Daten kommen aus Sectorbench (Destatis-Insolvenzen, ifo-Index,\n"
-            "  composite-PMI, ZEW, etc.). Für Branchen-Fragen NIEMALS websearch\n"
-            "  verwenden — diese Tools liefern offizielle, aktuelle deutsche Daten.\n"
+            "  composite-PMI, ZEW, etc.). Cite returned dates and distinguish provider data\n"
+            "  from interpretation. Do not claim that missing data is current.\n"
             "  Kombinier gerne Boniscore (einzelne Firma) + Branchen-Score (Kontext)\n"
             "  in einer Antwort, z.B. 'Müller Bau GmbH Boniscore plus Bauwirtschaft-Trend'."
         ),
         auth=_build_verifier(),
     )
+
+    def tool(**kwargs):
+        # ChatGPT discovers auth per tool; the JWT verifier enforces it at runtime.
+        metadata = dict(kwargs.pop("meta", {}) or {})
+        metadata["securitySchemes"] = [{"type": "oauth2", "scopes": ["mcp"]}]
+        return mcp.tool(meta=metadata, **kwargs)
 
     @mcp.resource(
         BONISCORE_PROGRESS_UI_URI,
@@ -360,12 +375,12 @@ def _make_mcp() -> FastMCP:
                 + ", ".join(missing)
             )
 
-    @mcp.tool(
+    @tool(
         annotations={
             "title": "Search German companies",
-            "readOnlyHint": True,
-            "destructiveHint": False,
-            "idempotentHint": True,
+            "readOnlyHint": False,
+            "destructiveHint": True,
+            "idempotentHint": False,
             "openWorldHint": True,
         }
     )
@@ -380,12 +395,12 @@ def _make_mcp() -> FastMCP:
         except BoniforceError as e:
             raise _wrap(e)
 
-    @mcp.tool(
+    @tool(
         annotations={
             "title": "Advanced German company search",
-            "readOnlyHint": True,
-            "destructiveHint": False,
-            "idempotentHint": True,
+            "readOnlyHint": False,
+            "destructiveHint": True,
+            "idempotentHint": False,
             "openWorldHint": True,
         }
     )
@@ -399,7 +414,7 @@ def _make_mcp() -> FastMCP:
         except BoniforceError as e:
             raise _wrap(e)
 
-    @mcp.tool(
+    @tool(
         annotations={
             "title": "List previously generated reports",
             "readOnlyHint": True,
@@ -415,7 +430,7 @@ def _make_mcp() -> FastMCP:
         chat sessions). Returns name, report_id, status, created_at.
 
         Decision rule after calling this:
-          - Match company name (case-insensitive, substring OK).
+          - Confirm the same legal entity using name and available register/location fields; clarify ambiguous matches.
           - If a match exists with status='completed' AND created_at is
             ≤30 days old → REUSE that report_id. Call get_report or
             get_report_financial_data with it. DO NOT call create_report
@@ -428,11 +443,11 @@ def _make_mcp() -> FastMCP:
         except BoniforceError as e:
             raise _wrap(e)
 
-    @mcp.tool(
+    @tool(
         annotations={
             "title": "Start a Boniscore report",
             "readOnlyHint": False,
-            "destructiveHint": False,
+            "destructiveHint": True,
             "idempotentHint": False,
             "openWorldHint": True,
         },
@@ -530,7 +545,7 @@ def _make_mcp() -> FastMCP:
         annotate_job_outcome(data, data.get("job_id"), status_value)
         return data
 
-    @mcp.tool(
+    @tool(
         annotations={
             "title": "Fetch finished Boniscore report",
             "readOnlyHint": True,
@@ -555,7 +570,7 @@ def _make_mcp() -> FastMCP:
         except BoniforceError as e:
             raise _wrap(e)
 
-    @mcp.tool(
+    @tool(
         annotations={
             "title": "Poll Boniscore job status",
             "readOnlyHint": True,
@@ -615,7 +630,7 @@ def _make_mcp() -> FastMCP:
         annotate_job_outcome(data, job_id, (data or {}).get("status") if isinstance(data, dict) else None)
         return data
 
-    @mcp.tool(
+    @tool(
         annotations={
             "title": "Balance-sheet history",
             "readOnlyHint": True,
@@ -644,7 +659,7 @@ def _make_mcp() -> FastMCP:
         except BoniforceError as e:
             raise _wrap(e)
 
-    @mcp.tool(
+    @tool(
         annotations={
             "title": "Per-year financial ratio analysis",
             "readOnlyHint": True,
@@ -663,11 +678,11 @@ def _make_mcp() -> FastMCP:
         except BoniforceError as e:
             raise _wrap(e)
 
-    @mcp.tool(
+    @tool(
         annotations={
             "title": "Fetch financial statements directly",
             "readOnlyHint": False,
-            "destructiveHint": False,
+            "destructiveHint": True,
             "idempotentHint": False,
             "openWorldHint": True,
         }
@@ -700,11 +715,11 @@ def _make_mcp() -> FastMCP:
         except BoniforceError as e:
             raise _wrap(e)
 
-    @mcp.tool(
+    @tool(
         annotations={
             "title": "Analyze financial statements directly",
             "readOnlyHint": False,
-            "destructiveHint": False,
+            "destructiveHint": True,
             "idempotentHint": False,
             "openWorldHint": True,
         }
@@ -737,7 +752,7 @@ def _make_mcp() -> FastMCP:
         except BoniforceError as e:
             raise _wrap(e)
 
-    @mcp.tool(
+    @tool(
         annotations={
             "title": "Company details and representatives",
             "readOnlyHint": True,
@@ -756,11 +771,11 @@ def _make_mcp() -> FastMCP:
         except BoniforceError as e:
             raise _wrap(e)
 
-    @mcp.tool(
+    @tool(
         annotations={
             "title": "Company shareholders",
             "readOnlyHint": False,
-            "destructiveHint": False,
+            "destructiveHint": True,
             "idempotentHint": False,
             "openWorldHint": True,
         }
@@ -777,11 +792,11 @@ def _make_mcp() -> FastMCP:
         except BoniforceError as e:
             raise _wrap(e)
 
-    @mcp.tool(
+    @tool(
         annotations={
             "title": "Company holdings",
             "readOnlyHint": False,
-            "destructiveHint": False,
+            "destructiveHint": True,
             "idempotentHint": False,
             "openWorldHint": True,
         }
@@ -805,7 +820,7 @@ def _make_mcp() -> FastMCP:
         except Exception as exc:
             return None, {"status": 502, "detail": str(exc)}
 
-    @mcp.tool(
+    @tool(
         annotations={
             "title": "Complete company credit intelligence",
             "readOnlyHint": True,
@@ -948,7 +963,7 @@ def _make_mcp() -> FastMCP:
             raise ToolError(f"months must be between 1 and {maximum}.")
         return months
 
-    @mcp.tool(
+    @tool(
         annotations={
             "title": "List German sector scores",
             "readOnlyHint": True,
@@ -968,7 +983,7 @@ def _make_mcp() -> FastMCP:
         except SectorbenchError as e:
             raise _wrap_sb(e)
 
-    @mcp.tool(
+    @tool(
         annotations={
             "title": "Rank German sectors by health score",
             "readOnlyHint": True,
@@ -987,7 +1002,7 @@ def _make_mcp() -> FastMCP:
         except SectorbenchError as e:
             raise _wrap_sb(e)
 
-    @mcp.tool(
+    @tool(
         annotations={
             "title": "Sector snapshot",
             "readOnlyHint": True,
@@ -1009,7 +1024,7 @@ def _make_mcp() -> FastMCP:
         except SectorbenchError as e:
             raise _wrap_sb(e)
 
-    @mcp.tool(
+    @tool(
         annotations={
             "title": "Sector score history",
             "readOnlyHint": True,
@@ -1032,7 +1047,7 @@ def _make_mcp() -> FastMCP:
         except SectorbenchError as e:
             raise _wrap_sb(e)
 
-    @mcp.tool(
+    @tool(
         annotations={
             "title": "Sector monthly briefing",
             "readOnlyHint": True,
@@ -1053,7 +1068,7 @@ def _make_mcp() -> FastMCP:
         except SectorbenchError as e:
             raise _wrap_sb(e)
 
-    @mcp.tool(
+    @tool(
         annotations={
             "title": "Sector insolvency history",
             "readOnlyHint": True,
@@ -1079,7 +1094,7 @@ def _make_mcp() -> FastMCP:
         except SectorbenchError as e:
             raise _wrap_sb(e)
 
-    @mcp.tool(
+    @tool(
         annotations={
             "title": "Sector indicator history",
             "readOnlyHint": True,
@@ -1105,7 +1120,7 @@ def _make_mcp() -> FastMCP:
         except SectorbenchError as e:
             raise _wrap_sb(e)
 
-    @mcp.tool(
+    @tool(
         annotations={
             "title": "List sector indicators",
             "readOnlyHint": True,
@@ -1125,7 +1140,7 @@ def _make_mcp() -> FastMCP:
         except SectorbenchError as e:
             raise _wrap_sb(e)
 
-    @mcp.tool(
+    @tool(
         annotations={
             "title": "Sectorbench data freshness",
             "readOnlyHint": True,
@@ -1253,11 +1268,20 @@ def _favicon_routes() -> list:
     return [Mount("/favicon", app=StaticFiles(directory=str(favicon_dir)))]
 
 
+async def openai_domain_challenge(request) -> PlainTextResponse:
+    """Serve one portal-issued token; stay unavailable until configured."""
+    token = get_settings().openai_verification_token
+    if not token:
+        return PlainTextResponse("Not configured", status_code=404)
+    return PlainTextResponse(token, headers={"Cache-Control": "no-store"})
+
+
 def build_app() -> Starlette:
     mcp = _make_mcp()
     mcp_app = mcp.http_app(path="/mcp", transport="http")
     outer = Starlette(
         routes=[
+            Route("/.well-known/openai-apps-challenge", openai_domain_challenge, methods=["GET"]),
             *auth.routes(),
             *rest_api.routes(),
             *_favicon_routes(),

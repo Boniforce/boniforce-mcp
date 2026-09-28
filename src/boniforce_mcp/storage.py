@@ -319,20 +319,20 @@ async def save_refresh_token(
         await db.commit()
 
 
-async def consume_refresh_token(token_hash: str) -> dict | None:
+async def consume_refresh_token(token_hash: str, client_id: str) -> dict | None:
     async with _connect() as db:
         _row(db)
+        # Bind to the requesting client before consuming, and rotate atomically.
         async with db.execute(
-            "SELECT user_id,client_id,scope,expires_at,revoked FROM oauth_refresh_tokens WHERE token_hash=?",
-            (token_hash,),
+            "UPDATE oauth_refresh_tokens SET revoked=1 "
+            "WHERE token_hash=? AND client_id=? AND revoked=0 AND expires_at>? "
+            "RETURNING user_id,client_id,scope",
+            (token_hash, client_id, _now()),
         ) as cur:
             row = await cur.fetchone()
-        if not row or row["revoked"] or row["expires_at"] < _now():
-            return None
-        await db.execute(
-            "UPDATE oauth_refresh_tokens SET revoked=1 WHERE token_hash=?", (token_hash,)
-        )
         await db.commit()
+        if not row:
+            return None
     return {"user_id": row["user_id"], "client_id": row["client_id"], "scope": row["scope"]}
 
 

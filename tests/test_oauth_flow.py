@@ -124,7 +124,8 @@ async def test_full_pkce_flow(app):
             "code_challenge": challenge,
             "code_challenge_method": "S256",
             "scope": "mcp",
-            "state": "xyz",
+            "state": "xyz&key=value+#fragment",
+            "resource": "http://testserver/mcp",
         }
 
         # Anonymous → API-key form
@@ -146,7 +147,7 @@ async def test_full_pkce_flow(app):
         loc = r3.headers["location"]
         assert loc.startswith(redirect_uri)
         code = parse_qs(urlparse(loc).query)["code"][0]
-        assert parse_qs(urlparse(loc).query)["state"][0] == "xyz"
+        assert parse_qs(urlparse(loc).query)["state"][0] == params["state"]
 
         # Exchange code for tokens
         r4 = c.post(
@@ -157,6 +158,7 @@ async def test_full_pkce_flow(app):
                 "client_id": cid,
                 "redirect_uri": redirect_uri,
                 "code_verifier": verifier,
+                "resource": "http://testserver/mcp",
             },
         )
         assert r4.status_code == 200, r4.text
@@ -175,6 +177,14 @@ async def test_full_pkce_flow(app):
         assert decoded["client_id"] == cid
         assert decoded["sub"]  # synthetic user_id
 
+        # A different client must not consume the legitimate client's token.
+        other_cid = _register_client(c)
+        wrong_client = c.post("/oauth/token", data={
+            "grant_type": "refresh_token", "client_id": other_cid,
+            "refresh_token": body["refresh_token"],
+        })
+        assert wrong_client.status_code == 400
+
         # Refresh
         r5 = c.post(
             "/oauth/token",
@@ -182,10 +192,30 @@ async def test_full_pkce_flow(app):
                 "grant_type": "refresh_token",
                 "client_id": cid,
                 "refresh_token": body["refresh_token"],
+                "resource": "http://testserver/mcp",
             },
         )
         assert r5.status_code == 200, r5.text
         assert "access_token" in r5.json()
+        replay = c.post("/oauth/token", data={
+            "grant_type": "refresh_token", "client_id": cid,
+            "refresh_token": body["refresh_token"],
+        })
+        assert replay.status_code == 400
+
+
+@pytest.mark.parametrize("path", ["/oauth/authorize", "/oauth/token"])
+@pytest.mark.parametrize("params,error", [
+    ({"resource": "https://unrelated.example/mcp"}, "invalid_target"),
+    ({"resource": ["http://testserver/mcp", "https://unrelated.example/mcp"]}, "invalid_target"),
+    ({"scope": "mcp admin"}, "invalid_scope"),
+    ({"scope": ""}, "invalid_scope"),
+])
+def test_rejects_unadvertised_resource_and_scope(app, path, params, error):
+    with TestClient(app) as client:
+        response = client.get(path, params=params) if path.endswith("authorize") else client.post(path, data=params)
+        assert response.status_code == 400
+        assert response.json()["error"] == error
 
 
 @pytest.mark.asyncio

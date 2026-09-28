@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     sectorbench_base: str = "https://sectorbench.theaiwhisperer.cloud/api/v1"
     sectorbench_token: str = ""
     sectorbench_cache_ttl: int = 600
+    openai_verification_token: str = ""
 
     @property
     def issuer(self) -> str:

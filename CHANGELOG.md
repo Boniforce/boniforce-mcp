@@ -26,6 +26,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   explicit credit authorization, and improved company identity checks.
 - This package release does not deploy or change the hosted MCP server.
 
+### Server changes (not yet released)
+- Configurable plain-text OpenAI domain verification endpoint and a restrictive
+  CSP for the self-contained MCP progress card.
+- Declare OAuth scope metadata on every MCP tool and enforce the `mcp` scope.
+- Mark all seven potentially credit-spending tools as state-changing with
+  irreversible side effects; disclose costs and require informed authorization.
+- Reject unadvertised OAuth resources/scopes, correctly encode returned state,
+  and consume refresh tokens atomically only for their registered client.
+- Clarify company disambiguation, untrusted tool text, delayed jobs, and the
+  distinction between a distributable package and an approved public listing.
+
 ## [0.7.0] — 2026-09-28
 
 ### Added
