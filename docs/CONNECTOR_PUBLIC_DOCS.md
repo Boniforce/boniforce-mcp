@@ -78,7 +78,7 @@ at rest, and bound to your Claude account via OAuth.
 
 ## Add to ChatGPT with a plugin
 
-1. [Download the Boniforce plugin ZIP](https://github.com/Caohung77/boniforce-mcp/raw/refs/heads/main/releases/boniforce-credit-check-plugin-0.3.2.zip) without extracting it.
+1. [Download Boniforce plugin v0.4.0 (ZIP)](https://github.com/Boniforce/boniforce-mcp/raw/refs/heads/main/releases/boniforce-credit-check-plugin-0.4.0.zip) without extracting it.
 2. In ChatGPT, open **Plugins → Add → Upload plugin archive**.
 3. Select the ZIP and complete the installation prompts.
 4. Use **Connect** / **Sign in** if offered. Enter your Boniforce API key only
@@ -243,7 +243,7 @@ Full privacy policy:
 
 Source code, self-hosting, OAuth internals, and Custom GPT Actions
 recipes live in the GitHub repository:
-[github.com/Caohung77/boniforce-mcp](https://github.com/Caohung77/boniforce-mcp).
+[github.com/Boniforce/boniforce-mcp](https://github.com/Boniforce/boniforce-mcp).
 
 ---
 

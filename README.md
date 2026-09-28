@@ -66,7 +66,7 @@ Custom GPT or import an OpenAPI schema for this setup.
 
 ### 1. Download the plugin
 
-[**Download the Boniforce plugin ZIP**](https://github.com/Caohung77/boniforce-mcp/raw/refs/heads/main/releases/boniforce-credit-check-plugin-0.3.2.zip)
+[**Download Boniforce plugin v0.4.0 (ZIP)**](https://github.com/Boniforce/boniforce-mcp/raw/refs/heads/main/releases/boniforce-credit-check-plugin-0.4.0.zip)
 
 Save the `.zip` file without extracting it. Use the **plugin** archive, which
 contains the Boniforce workflow and MCP connection configuration.
@@ -150,7 +150,7 @@ distribution follows [OpenAI's submission process](https://developers.openai.com
 For Codex users, the repository also provides a plugin marketplace:
 
 ```bash
-codex plugin marketplace add Caohung77/boniforce-mcp
+codex plugin marketplace add Boniforce/boniforce-mcp
 codex plugin add boniforce-credit-check@boniforce
 ```
 
@@ -344,7 +344,7 @@ rather than MCP. Spec at `/api/openapi.json`. Same JWT auth as `/mcp`.
 Requirements: Linux host, Docker + Compose, public domain pointing at the host.
 
 ```bash
-git clone https://github.com/Caohung77/boniforce-mcp
+git clone https://github.com/Boniforce/boniforce-mcp
 cd boniforce-mcp/deploy
 
 sed -i 's/mcp\.your-domain\.tld/your.domain.tld/' Caddyfile

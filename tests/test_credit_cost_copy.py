@@ -145,7 +145,7 @@ def test_plugin_release_uses_server_progress_without_duplicate_narration():
         plugin_dir / "skills" / "boniforce-credit-check" / "SKILL.md"
     ).read_text()
 
-    assert manifest["version"] == "0.3.2"
+    assert manifest["version"] == "0.4.0"
     assert "MCP server's localized progress notifications" in skill
     assert "live MCP App progress card" in skill
     assert "Do not add assistant-authored polling updates" in skill

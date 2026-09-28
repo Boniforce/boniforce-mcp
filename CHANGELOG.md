@@ -6,6 +6,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Plugin 0.4.0 — 2026-09-28
+- Publish the portable Boniforce plugin and matching skills archives, with
+  German branding, a bundled logo, and compatibility manifests for older clients.
+- Update every installation download link to v0.4.0 under Boniforce/boniforce-mcp.
+- Include the matching source and reproducible build script, SHA-256 checksums,
+  explicit credit authorization, and improved company identity checks.
+- This package release does not deploy or change the hosted MCP server.
+
 ## [0.7.0] — 2026-09-28
 
 ### Added

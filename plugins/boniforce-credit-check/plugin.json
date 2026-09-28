@@ -1,0 +1,46 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "boniforce-credit-check",
+  "version": "0.4.0",
+  "description": "Erstellen Sie aktuelle, finanz- und branchenbezogene Bonitätsanalysen für deutsche Unternehmen.",
+  "author": {
+    "name": "Boniforce",
+    "url": "https://boniforce.de"
+  },
+  "homepage": "https://boniforce.de",
+  "repository": "https://github.com/Boniforce/boniforce-mcp",
+  "license": "MIT",
+  "keywords": [
+    "boniforce",
+    "boniscore",
+    "bonitätsprüfung",
+    "kreditlimit",
+    "firmenauskunft",
+    "deutschland"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Boniforce Bonitätsprüfung",
+        "shortDescription": "Bonität, Bilanzen und Branchen im Überblick",
+        "longDescription": "Prüfen Sie deutsche Unternehmen mit Boniscore, Kreditlimit-Empfehlungen, Bilanzentwicklungen und Finanzkennzahlen. Ergänzen Sie vorhandene Berichte um passende SectorBench-Brancheninformationen. Aktuelle Berichte werden wiederverwendet; neue Abfragen können Boniforce-Credits verbrauchen (Suche 1, erweiterte Suche 5, neuer Bericht 75). Ein verbundenes Boniforce-Konto ist erforderlich. Ergebnisse unterstützen Ihre Prüfung; sie treffen keine verbindlichen Kreditentscheidungen.",
+        "developerName": "Boniforce",
+        "category": "Business",
+        "capabilities": [
+          "Interactive",
+          "Read",
+          "Write"
+        ],
+        "websiteURL": "https://boniforce.de",
+        "privacyPolicyURL": "https://boniforce.de/datenschutz",
+        "defaultPrompt": [
+          "Prüfe den aktuellen Boniscore dieses deutschen Unternehmens.",
+          "Bewerte dieses Unternehmen und vergleiche sein Risiko mit der Branche.",
+          "Erstelle eine visuelle Bonitätsauskunft mit Finanz- und Branchentrends."
+        ],
+        "composerIcon": "./assets/boniforce-logo.png",
+        "logo": "./assets/boniforce-logo.png"
+      }
+    }
+  }
+}
