@@ -892,6 +892,10 @@ def _make_mcp() -> FastMCP:
                 "Sectorbench upstream rejected the operator token "
                 "(server config issue, not a user problem)."
             )
+        if exc.status == 429:
+            retry_after = exc.headers.get("retry-after")
+            retry_hint = f" Retry after {retry_after} seconds." if retry_after else ""
+            return ToolError(f"Sectorbench rate limit reached.{retry_hint}")
         return ToolError(f"Sectorbench API returned {exc.status}: {exc.body}")
 
     def _validate_branch(branch_key: str) -> None:

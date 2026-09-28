@@ -265,3 +265,54 @@ def test_openapi_includes_sectorbench_operations(app):
     assert expected.issubset(op_ids)
     # Existing Boniforce ops still present
     assert "searchCompanies" in op_ids
+    schemas = spec["components"]["schemas"]
+    assert "supported_branch_keys" in schemas["SectorbenchMeta"]["properties"]
+    assert "fetch_run_id" in schemas["BranchScore"]["required"]
+    assert schemas["BranchScore"]["properties"]["risk_level"]["enum"] == [
+        "Excellent",
+        "Good",
+        "Moderate",
+        "Weak",
+        "Critical",
+    ]
+    assert schemas["InsolvencyHistoryPoint"]["required"] == [
+        "reference_period",
+        "opened_cases",
+        "dismissed_cases",
+        "total_cases",
+    ]
+
+
+def test_sectorbench_error_envelope_and_rate_limit_headers_are_preserved(app):
+    user_id = str(uuid.uuid4())
+    token = _mint_jwt(user_id)
+    upstream_body = {
+        "error": {
+            "code": "rate_limited",
+            "message": "Quota exceeded.",
+            "retry_after_seconds": 45,
+        }
+    }
+    with respx.mock(assert_all_called=True) as rx:
+        rx.get(f"{SECTORBENCH_BASE}/scores").mock(
+            return_value=httpx.Response(
+                429,
+                json=upstream_body,
+                headers={
+                    "Retry-After": "45",
+                    "X-RateLimit-Limit": "600",
+                    "X-RateLimit-Remaining": "0",
+                    "X-RateLimit-Reset": "1800000000",
+                },
+            )
+        )
+        with TestClient(app) as c:
+            response = c.get(
+                "/api/v1/branches",
+                headers={"authorization": f"Bearer {token}"},
+            )
+
+    assert response.status_code == 429
+    assert response.json() == upstream_body
+    assert response.headers["retry-after"] == "45"
+    assert response.headers["x-ratelimit-limit"] == "600"

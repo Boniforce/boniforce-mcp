@@ -20,6 +20,7 @@ from starlette.responses import JSONResponse, Response
 from starlette.routing import Route
 
 from . import auth, storage
+from .boniforce_client import BoniforceError
 from .config import get_settings
 from .sectorbench_client import SectorbenchError
 
@@ -76,6 +77,13 @@ async def _authenticate(request: Request) -> tuple[str, str]:
 
 def _err(status: int, message: str) -> JSONResponse:
     return JSONResponse({"error": message}, status_code=status)
+
+
+def _wrap_boniforce(exc: BoniforceError) -> JSONResponse:
+    """Preserve actionable upstream 4xx responses; map upstream failures to 502."""
+    status = exc.status if 400 <= exc.status < 500 else 502
+    body = exc.body if isinstance(exc.body, dict) else {"error": str(exc.body)}
+    return JSONResponse(body, status_code=status)
 
 
 def _client_holder() -> Any:
@@ -136,9 +144,26 @@ def _wrap_sectorbench(exc: SectorbenchError) -> JSONResponse:
     - Anything else → 502.
     """
     if exc.status in (404, 429, 503):
+        body = (
+            exc.body
+            if isinstance(exc.body, dict)
+            else {"error": {"code": "upstream_error", "message": str(exc.body)}}
+        )
+        headers = {
+            name: value
+            for name, value in exc.headers.items()
+            if name.lower()
+            in {
+                "retry-after",
+                "x-ratelimit-limit",
+                "x-ratelimit-remaining",
+                "x-ratelimit-reset",
+            }
+        }
         return JSONResponse(
-            {"error": exc.body if isinstance(exc.body, dict) else {"message": exc.body}},
+            body,
             status_code=exc.status,
+            headers=headers,
         )
     if exc.status in (401, 403):
         return _err(502, "Sectorbench upstream rejected the operator token.")
@@ -343,6 +368,8 @@ async def search_companies(request: Request) -> Response:
         return _err(400, "Missing required query parameter: query.")
     try:
         data = await _client_holder().search_companies(token, query)
+    except BoniforceError as exc:
+        return _wrap_boniforce(exc)
     except Exception as exc:
         return _err(502, f"Boniforce upstream: {exc}")
     return JSONResponse(data)
@@ -358,6 +385,8 @@ async def search_companies_advanced(request: Request) -> Response:
         return _err(400, "Missing required query parameter: query.")
     try:
         data = await _client_holder().search_companies_advanced(token, query)
+    except BoniforceError as exc:
+        return _wrap_boniforce(exc)
     except Exception as exc:
         return _err(502, f"Boniforce upstream: {exc}")
     return JSONResponse(data)
@@ -370,6 +399,8 @@ async def list_reports(request: Request) -> Response:
         return _err(e.status, e.message)
     try:
         data = await _client_holder().list_reports(token)
+    except BoniforceError as exc:
+        return _wrap_boniforce(exc)
     except Exception as exc:
         return _err(502, f"Boniforce upstream: {exc}")
     return JSONResponse(data)
@@ -398,6 +429,8 @@ async def create_report(request: Request) -> Response:
             search_result_id=body.get("search_result_id"),
             session_id=body.get("session_id"),
         )
+    except BoniforceError as exc:
+        return _wrap_boniforce(exc)
     except Exception as exc:
         return _err(502, f"Boniforce upstream: {exc}")
     if isinstance(data, dict) and data.get("job_id"):
@@ -414,7 +447,14 @@ async def create_report(request: Request) -> Response:
             wait_s = 0.0
         if wait_s > 0:
             client = _client_holder()
-            status = await client.wait_for_job(token, data["job_id"], max_wait_s=wait_s)
+            try:
+                status = await client.wait_for_job(
+                    token, data["job_id"], max_wait_s=wait_s
+                )
+            except BoniforceError as exc:
+                return _wrap_boniforce(exc)
+            except Exception as exc:
+                return _err(502, f"Boniforce upstream: {exc}")
             data["final_status"] = status
             status_value = (status or {}).get("status")
             await _attach_completed_report(client, token, data, status_value)
@@ -430,6 +470,8 @@ async def get_report(request: Request) -> Response:
     report_id = request.path_params["report_id"]
     try:
         data = await _client_holder().get_report(token, report_id)
+    except BoniforceError as exc:
+        return _wrap_boniforce(exc)
     except Exception as exc:
         return _err(502, f"Boniforce upstream: {exc}")
     return JSONResponse(data)
@@ -448,6 +490,8 @@ async def get_job_status(request: Request) -> Response:
             data = await _client_holder().wait_for_job(token, job_id, max_wait_s=wait_s)
         else:
             data = await _client_holder().get_job_status(token, job_id)
+    except BoniforceError as exc:
+        return _wrap_boniforce(exc)
     except Exception as exc:
         return _err(502, f"Boniforce upstream: {exc}")
     if isinstance(data, dict):
@@ -466,6 +510,8 @@ async def get_report_financial_data(request: Request) -> Response:
     report_id = request.path_params["report_id"]
     try:
         data = await _client_holder().get_report_financial_data(token, report_id)
+    except BoniforceError as exc:
+        return _wrap_boniforce(exc)
     except Exception as exc:
         return _err(502, f"Boniforce upstream: {exc}")
     return JSONResponse(data)
@@ -479,6 +525,8 @@ async def get_report_financial_analysis(request: Request) -> Response:
     report_id = request.path_params["report_id"]
     try:
         data = await _client_holder().get_report_financial_analysis(token, report_id)
+    except BoniforceError as exc:
+        return _wrap_boniforce(exc)
     except Exception as exc:
         return _err(502, f"Boniforce upstream: {exc}")
     return JSONResponse(data)
@@ -492,6 +540,8 @@ async def get_financial_data(request: Request) -> Response:
         return _err(e.status, e.message)
     try:
         data = await _client_holder().get_financial_data(token, **params)
+    except BoniforceError as exc:
+        return _wrap_boniforce(exc)
     except Exception as exc:
         return _err(502, f"Boniforce upstream: {exc}")
     return JSONResponse(data)
@@ -505,6 +555,8 @@ async def get_financial_analysis(request: Request) -> Response:
         return _err(e.status, e.message)
     try:
         data = await _client_holder().get_financial_analysis(token, **params)
+    except BoniforceError as exc:
+        return _wrap_boniforce(exc)
     except Exception as exc:
         return _err(502, f"Boniforce upstream: {exc}")
     return JSONResponse(data)
@@ -519,6 +571,8 @@ async def get_company_details(request: Request) -> Response:
         data = await _client_holder().get_company_details(
             token, request.path_params["report_id"]
         )
+    except BoniforceError as exc:
+        return _wrap_boniforce(exc)
     except Exception as exc:
         return _err(502, f"Boniforce upstream: {exc}")
     return JSONResponse(data)
@@ -533,6 +587,8 @@ async def get_company_shareholders(request: Request) -> Response:
         data = await _client_holder().get_company_shareholders(
             token, request.path_params["report_id"]
         )
+    except BoniforceError as exc:
+        return _wrap_boniforce(exc)
     except Exception as exc:
         return _err(502, f"Boniforce upstream: {exc}")
     return JSONResponse(data)
@@ -547,6 +603,8 @@ async def get_company_holdings(request: Request) -> Response:
         data = await _client_holder().get_company_holdings(
             token, request.path_params["report_id"]
         )
+    except BoniforceError as exc:
+        return _wrap_boniforce(exc)
     except Exception as exc:
         return _err(502, f"Boniforce upstream: {exc}")
     return JSONResponse(data)
@@ -787,26 +845,113 @@ def _openapi_spec() -> dict[str, Any]:
                     },
                     "required": ["name", "active"],
                 },
+                "ScoreAssessment": {
+                    "type": "object",
+                    "properties": {
+                        "label": {"type": "string"},
+                        "color_code": {"type": "integer"},
+                        "range": {"type": ["string", "null"]},
+                        "description": {"type": ["string", "null"]},
+                    },
+                    "required": ["label", "color_code"],
+                },
+                "GeneralEntry": {
+                    "type": "object",
+                    "properties": {
+                        "key": {"type": "string"},
+                        "label": {"type": ["string", "null"]},
+                        "value": {
+                            "anyOf": [
+                                {"type": "string"},
+                                {"type": "integer"},
+                                {"type": "number"},
+                                {"type": "array", "items": {"type": "string"}},
+                                {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/GeneralEntry"
+                                    },
+                                },
+                                {"type": "null"},
+                            ]
+                        },
+                    },
+                    "required": ["key"],
+                },
+                "CreditAssessmentDetails": {
+                    "type": "object",
+                    "properties": {
+                        "type": {"type": "string"},
+                        "value": {"type": "integer"},
+                        "details": {
+                            "oneOf": [
+                                {"$ref": "#/components/schemas/ScoreAssessment"},
+                                {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/GeneralEntry"
+                                    },
+                                },
+                                {"type": "null"},
+                            ]
+                        },
+                    },
+                    "required": ["type", "value"],
+                },
+                "ReportCompany": {
+                    "type": "object",
+                    "properties": {
+                        "name": {"type": "string"},
+                        "report_id": {"type": "string"},
+                        "address": {"type": ["string", "null"]},
+                        "register_info": {
+                            "oneOf": [
+                                {
+                                    "$ref": (
+                                        "#/components/schemas/"
+                                        "CompanyRegisterInformation"
+                                    )
+                                },
+                                {"type": "null"},
+                            ]
+                        },
+                        "firmographics": {
+                            "oneOf": [
+                                {
+                                    "$ref": (
+                                        "#/components/schemas/"
+                                        "CompanyFirmographics"
+                                    )
+                                },
+                                {"type": "null"},
+                            ]
+                        },
+                    },
+                    "required": ["name", "report_id"],
+                },
+                "ReportListItem": {
+                    "type": "object",
+                    "properties": {
+                        "name": {"type": "string"},
+                        "report_id": {"type": "string"},
+                        "version": {"type": "number", "default": 1.0},
+                        "status": {"type": ["string", "null"]},
+                        "created_at": {"type": "string", "format": "date-time"},
+                    },
+                    "required": ["name", "report_id"],
+                },
                 "Report": {
                     "type": "object",
                     "properties": {
                         "report_id": {"type": "string"},
-                        "version": {"type": "number"},
+                        "version": {"type": "number", "default": 1.0},
                         "score": {
                             "type": ["integer", "null"],
                             "description": "Boniscore 0–100; higher = lower risk.",
                         },
                         "score_details": {
                             "oneOf": [
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "label": {"type": "string"},
-                                        "color_code": {"type": "integer"},
-                                        "range": {"type": ["string", "null"]},
-                                        "description": {"type": ["string", "null"]},
-                                    },
-                                },
+                                {"$ref": "#/components/schemas/ScoreAssessment"},
                                 {"type": "null"},
                             ]
                         },
@@ -815,8 +960,26 @@ def _openapi_spec() -> dict[str, Any]:
                             "type": ["string", "null"],
                             "description": "APPROVE / REVIEW / DECLINE",
                         },
-                        "assessments": {"type": ["array", "null"]},
-                        "company": {"type": ["object", "null"]},
+                        "assessments": {
+                            "oneOf": [
+                                {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": (
+                                            "#/components/schemas/"
+                                            "CreditAssessmentDetails"
+                                        )
+                                    },
+                                },
+                                {"type": "null"},
+                            ]
+                        },
+                        "company": {
+                            "oneOf": [
+                                {"$ref": "#/components/schemas/ReportCompany"},
+                                {"type": "null"},
+                            ]
+                        },
                         "status": {
                             "type": ["string", "null"],
                             "description": "Company state, e.g. active or liquidation.",
@@ -923,6 +1086,7 @@ def _openapi_spec() -> dict[str, Any]:
                         "forderungen": {"type": "number", "nullable": True},
                         "liquide_mittel": {"type": "number", "nullable": True},
                     },
+                    "required": ["jahr"],
                 },
                 "AktivaAnlagevermoegenDetails": {
                     "type": "object",
@@ -1032,14 +1196,20 @@ def _openapi_spec() -> dict[str, Any]:
                         "aktiva": {"$ref": "#/components/schemas/Aktiva"},
                         "passiva": {"$ref": "#/components/schemas/Passiva"},
                         "guv": {
-                            "type": "object",
                             "description": (
                                 "Profit & loss statement. Open dict; field set "
                                 "depends on the filing's level of detail."
                             ),
-                            "additionalProperties": True,
+                            "oneOf": [
+                                {
+                                    "type": "object",
+                                    "additionalProperties": True,
+                                },
+                                {"type": "null"},
+                            ],
                         },
                     },
+                    "required": ["year"],
                 },
                 "FinancialDataResponse": {
                     "type": "object",
@@ -1068,6 +1238,13 @@ def _openapi_spec() -> dict[str, Any]:
                             "nullable": True,
                         },
                     },
+                    "required": [
+                        "report_id",
+                        "register_type",
+                        "register_number",
+                        "register_court",
+                        "financials",
+                    ],
                 },
                 "FinancialRatio": {
                     "type": "object",
@@ -1094,7 +1271,8 @@ def _openapi_spec() -> dict[str, Any]:
                                 },
                             },
                         },
-                    ]
+                    ],
+                    "required": ["jahr"],
                 },
                 "FinancialAnalysisResponse": {
                     "type": "object",
@@ -1111,6 +1289,13 @@ def _openapi_spec() -> dict[str, Any]:
                         },
                         "created_at": {"type": ["string", "null"]},
                     },
+                    "required": [
+                        "report_id",
+                        "register_type",
+                        "register_number",
+                        "register_court",
+                        "financials",
+                    ],
                 },
                 "CompanyRegisterInformation": {
                     "type": "object",
@@ -1240,28 +1425,69 @@ def _openapi_spec() -> dict[str, Any]:
                         "branch_name_en": {"type": "string"},
                         "composite_score": {
                             "type": "number",
+                            "format": "float",
                             "minimum": 0,
                             "maximum": 100,
                             "description": "Composite branch-health score 0-100; higher = healthier sector.",
                         },
                         "risk_level": {
                             "type": "string",
-                            "description": "Free-form upstream label, e.g. low/medium/high or Excellent/Critical.",
+                            "enum": [
+                                "Excellent",
+                                "Good",
+                                "Moderate",
+                                "Weak",
+                                "Critical",
+                            ],
                         },
-                        "confidence": {"type": "string"},
+                        "confidence": {
+                            "type": "string",
+                            "enum": ["high", "medium", "low"],
+                        },
                         "dimensions": {
                             "type": "object",
                             "properties": {
-                                "financial_health": {"type": "number", "nullable": True},
-                                "market_dynamics": {"type": "number", "nullable": True},
-                                "regulatory_climate": {"type": "number", "nullable": True},
-                                "innovation_index": {"type": "number", "nullable": True},
-                                "labor_market": {"type": "number", "nullable": True},
-                                "external_risk": {"type": "number", "nullable": True},
+                                "financial_health": {
+                                    "type": "number",
+                                    "format": "float",
+                                },
+                                "market_dynamics": {
+                                    "type": "number",
+                                    "format": "float",
+                                },
+                                "regulatory_climate": {
+                                    "type": "number",
+                                    "format": "float",
+                                },
+                                "innovation_index": {
+                                    "type": "number",
+                                    "format": "float",
+                                },
+                                "labor_market": {
+                                    "type": "number",
+                                    "format": "float",
+                                },
+                                "external_risk": {
+                                    "type": "number",
+                                    "format": "float",
+                                },
                             },
+                            "required": [
+                                "financial_health",
+                                "market_dynamics",
+                                "regulatory_climate",
+                                "innovation_index",
+                                "labor_market",
+                                "external_risk",
+                            ],
                         },
                         "rank": {"type": "integer", "minimum": 1, "maximum": 10},
-                        "percentile": {"type": "number"},
+                        "percentile": {
+                            "type": "number",
+                            "format": "float",
+                            "minimum": 0,
+                            "maximum": 100,
+                        },
                         "rank_delta": {"type": "integer", "nullable": True},
                         "fetch_run_id": {"type": "integer"},
                         "fetched_at": {"type": "string", "format": "date-time"},
@@ -1277,6 +1503,7 @@ def _openapi_spec() -> dict[str, Any]:
                         "confidence",
                         "dimensions",
                         "rank",
+                        "fetch_run_id",
                         "fetched_at",
                     ],
                 },
@@ -1285,13 +1512,21 @@ def _openapi_spec() -> dict[str, Any]:
                     "properties": {
                         "reference_period": {"type": "string", "format": "date"},
                         "fetched_at": {"type": "string", "format": "date-time"},
-                        "composite_score": {"type": "number"},
+                        "composite_score": {"type": "number", "format": "float"},
                         "risk_level": {"type": "string"},
                         "dimensions": {
                             "type": "object",
-                            "additionalProperties": {"type": "number"},
+                            "additionalProperties": {
+                                "type": "number",
+                                "format": "float",
+                            },
                         },
                     },
+                    "required": [
+                        "reference_period",
+                        "fetched_at",
+                        "composite_score",
+                    ],
                 },
                 "IndicatorCatalogEntry": {
                     "type": "object",
@@ -1305,6 +1540,13 @@ def _openapi_spec() -> dict[str, Any]:
                         "higher_is_better": {"type": "boolean"},
                         "publication_lag_months": {"type": "integer", "nullable": True},
                     },
+                    "required": [
+                        "indicator_key",
+                        "name_de",
+                        "name_en",
+                        "unit",
+                        "higher_is_better",
+                    ],
                 },
                 "IndicatorHistoryPoint": {
                     "type": "object",
@@ -1312,17 +1554,33 @@ def _openapi_spec() -> dict[str, Any]:
                         "reference_period": {"type": "string", "format": "date"},
                         "reference_period_inferred": {"type": "boolean"},
                         "fetched_at": {"type": "string", "format": "date-time"},
-                        "value": {"type": "number", "nullable": True},
+                        "value": {
+                            "type": "number",
+                            "format": "float",
+                            "nullable": True,
+                        },
                     },
+                    "required": [
+                        "reference_period",
+                        "reference_period_inferred",
+                        "fetched_at",
+                        "value",
+                    ],
                 },
                 "InsolvencyHistoryPoint": {
                     "type": "object",
                     "properties": {
                         "reference_period": {"type": "string", "format": "date"},
-                        "opened_cases": {"type": "integer", "nullable": True},
-                        "dismissed_cases": {"type": "integer", "nullable": True},
-                        "total_cases": {"type": "integer", "nullable": True},
+                        "opened_cases": {"type": "integer", "minimum": 0},
+                        "dismissed_cases": {"type": "integer", "minimum": 0},
+                        "total_cases": {"type": "integer", "minimum": 0},
                     },
+                    "required": [
+                        "reference_period",
+                        "opened_cases",
+                        "dismissed_cases",
+                        "total_cases",
+                    ],
                 },
                 "NewsReport": {
                     "type": "object",
@@ -1374,6 +1632,14 @@ def _openapi_spec() -> dict[str, Any]:
                         "published_at": {"type": "string", "format": "date-time"},
                         "model": {"type": "string"},
                     },
+                    "required": [
+                        "branch_key",
+                        "window_start",
+                        "window_end",
+                        "executive_overview",
+                        "citations",
+                        "published_at",
+                    ],
                 },
                 "SectorbenchMeta": {
                     "type": "object",
@@ -1383,7 +1649,17 @@ def _openapi_spec() -> dict[str, Any]:
                         "latest_fetch_run_at": {"type": "string", "format": "date-time"},
                         "weight_profile": {"type": "string"},
                         "branch_count": {"type": "integer"},
+                        "supported_branch_keys": {
+                            "type": "array",
+                            "items": {"$ref": "#/components/schemas/BranchKey"},
+                        },
                     },
+                    "required": [
+                        "api_version",
+                        "latest_fetch_run_id",
+                        "latest_fetch_run_at",
+                        "branch_count",
+                    ],
                 },
             },
         },
@@ -1454,7 +1730,24 @@ def _openapi_spec() -> dict[str, Any]:
                 "get": {
                     "operationId": "listReports",
                     "summary": "List previously generated reports for the authenticated account.",
-                    "responses": {"200": {"description": "OK"}},
+                    "responses": {
+                        "200": {
+                            "description": "Previously generated reports.",
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "type": "array",
+                                        "items": {
+                                            "$ref": (
+                                                "#/components/schemas/"
+                                                "ReportListItem"
+                                            )
+                                        },
+                                    }
+                                }
+                            },
+                        }
+                    },
                 },
                 "post": {
                     "operationId": "createReport",

@@ -20,6 +20,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   keep the same model-driven polling and final response workflow.
 
 ### Fixed
+- Synchronize the Custom GPT OpenAPI response schemas with the live Boniforce
+  OpenAPI 3.1 contract and Sectorbench v1 contract as checked on 2026-09-28:
+  document nested score assessments, report companies, report-list items,
+  required financial and sector fields, strict sector enums, and
+  `supported_branch_keys` metadata.
+- Preserve actionable Boniforce 4xx responses through the REST proxy instead
+  of rewriting them as generic 502 errors.
+- Preserve Sectorbench's structured error envelope and rate-limit headers
+  (`Retry-After` and `X-RateLimit-*`) through the REST proxy, and include the
+  retry delay in MCP rate-limit errors.
 - Base the live card's estimated progress on the typical 120-second report
   duration, listen for delayed ChatGPT `openai:set_globals` tool output, and
   keep the progress bar visible at 100% when the finished report arrives.

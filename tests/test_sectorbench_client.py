@@ -54,7 +54,11 @@ async def test_branch_history_passes_months(respx_mock, sb_token):
 @respx.mock(assert_all_called=False)
 async def test_4xx_raises_sectorbench_error(respx_mock, sb_token):
     respx_mock.get(f"{SECTORBENCH_BASE}/branches/unknown").mock(
-        return_value=httpx.Response(404, json={"error": "branch_not_found"})
+        return_value=httpx.Response(
+            404,
+            json={"error": "branch_not_found"},
+            headers={"X-RateLimit-Remaining": "599"},
+        )
     )
     client = SectorbenchClient()
     try:
@@ -64,6 +68,7 @@ async def test_4xx_raises_sectorbench_error(respx_mock, sb_token):
         await client.aclose()
     assert exc.value.status == 404
     assert exc.value.body == {"error": "branch_not_found"}
+    assert exc.value.headers["x-ratelimit-remaining"] == "599"
 
 
 @pytest.mark.asyncio

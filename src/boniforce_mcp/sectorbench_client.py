@@ -29,10 +29,16 @@ from .config import get_settings
 
 
 class SectorbenchError(RuntimeError):
-    def __init__(self, status: int, body: Any):
+    def __init__(
+        self,
+        status: int,
+        body: Any,
+        headers: dict[str, str] | None = None,
+    ):
         super().__init__(f"Sectorbench API error {status}: {body}")
         self.status = status
         self.body = body
+        self.headers = headers or {}
 
 
 _RETRYABLE = retry_if_exception_type((httpx.TransportError, httpx.ReadTimeout))
@@ -103,7 +109,7 @@ class SectorbenchClient:
                 body = resp.json()
             except Exception:
                 body = resp.text
-            raise SectorbenchError(resp.status_code, body)
+            raise SectorbenchError(resp.status_code, body, dict(resp.headers))
         if not resp.content:
             return None
         ctype = resp.headers.get("content-type", "")

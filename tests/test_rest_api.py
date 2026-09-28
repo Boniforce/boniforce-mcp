@@ -140,6 +140,26 @@ def test_openapi_spec_served(app):
     assert job_schema["properties"]["report"]["oneOf"][0] == {
         "$ref": "#/components/schemas/Report"
     }
+    report_schema = spec["components"]["schemas"]["Report"]
+    assert report_schema["properties"]["score_details"]["oneOf"][0] == {
+        "$ref": "#/components/schemas/ScoreAssessment"
+    }
+    assert report_schema["properties"]["assessments"]["oneOf"][0]["items"] == {
+        "$ref": "#/components/schemas/CreditAssessmentDetails"
+    }
+    list_schema = spec["paths"]["/api/v1/reports"]["get"]["responses"]["200"][
+        "content"
+    ]["application/json"]["schema"]
+    assert list_schema["items"] == {
+        "$ref": "#/components/schemas/ReportListItem"
+    }
+    assert spec["components"]["schemas"]["FinancialDataResponse"]["required"] == [
+        "report_id",
+        "register_type",
+        "register_number",
+        "register_court",
+        "financials",
+    ]
     for path, method in (
         ("/api/v1/reports", "post"),
         ("/api/v1/jobs/{job_id}/status", "get"),
@@ -173,6 +193,29 @@ async def test_rest_search_with_real_jwt(app):
             )
     assert r.status_code == 200, r.text
     assert r.json()[0]["name"] == "ACME"
+
+
+@pytest.mark.asyncio
+async def test_rest_preserves_actionable_boniforce_errors(app):
+    _, token = await _seed_user()
+
+    with respx.mock(assert_all_called=True) as rx:
+        rx.get("https://api.boniforce.de/v1/search").mock(
+            return_value=httpx.Response(
+                422,
+                json={"detail": [{"loc": ["query", "query"], "msg": "invalid"}]},
+            )
+        )
+        with TestClient(app) as c:
+            response = c.get(
+                "/api/v1/search?query=x",
+                headers={"authorization": f"Bearer {token}"},
+            )
+
+    assert response.status_code == 422
+    assert response.json() == {
+        "detail": [{"loc": ["query", "query"], "msg": "invalid"}]
+    }
 
 
 @pytest.mark.asyncio
