@@ -40,12 +40,11 @@ Connector URL: **`https://mcp.boniforce.de/mcp`**
 - **Claude.ai** (Pro, Max, Team, Enterprise) — *Settings → Connectors →
   Add custom connector*.
 - **Claude Desktop** (Mac, Windows) — same path.
-- **ChatGPT** (Pro, Plus, Business, Enterprise, Education) on
-  [chatgpt.com](https://chatgpt.com) — Developer Mode required, beta.
+- **ChatGPT** — Plugins with archive upload; direct MCP connection may require
+  Developer mode and workspace permission.
 - **Any MCP-compatible client** that supports Streamable HTTP + OAuth 2.1.
 
-Free tiers of Claude and ChatGPT do not currently expose custom MCP
-connectors.
+Available installation options depend on your account and workspace settings.
 
 ---
 
@@ -77,54 +76,33 @@ manager or sign up at [boniforce.de](https://www.boniforce.de).
 The key is validated against `api.boniforce.de` on submission, encrypted
 at rest, and bound to your Claude account via OAuth.
 
-## Add to ChatGPT
+## Add to ChatGPT with a plugin
 
-ChatGPT custom MCP connectors are in beta and gated behind Developer
-Mode:
+1. [Download the Boniforce plugin ZIP](https://github.com/Caohung77/boniforce-mcp/raw/refs/heads/main/releases/boniforce-credit-check-plugin-0.3.2.zip) without extracting it.
+2. In ChatGPT, open **Plugins → Add → Upload plugin archive**.
+3. Select the ZIP and complete the installation prompts.
+4. Use **Connect** / **Sign in** if offered. Enter your Boniforce API key only
+   on the authorization page at `https://mcp.boniforce.de`.
+5. Start a new chat, select or mention Boniforce, and ask for your existing
+   reports first. No new paid report is needed to test the connection.
 
-1. **chatgpt.com → Settings → Apps & Connectors**.
-2. **Erweiterte Einstellungen → Entwicklermodus** → **on**.
-3. Back on *Apps & Connectors*, click **App erstellen**.
-4. Fill the form:
-   - **Name:** `Boniforce`
-   - **URL des MCP-Servers:** `https://mcp.boniforce.de/mcp`
-     (the `/mcp` suffix is required — ignore the `/sse` placeholder)
-   - **Authentifizierung:** OAuth (leave advanced settings closed —
-     auto-discovery handles it)
-5. Save → paste your Boniforce API key in the popup.
+![ChatGPT Plugins menu with Upload plugin archive highlighted](../assets/chatgpt-plugins-install-mockup.png)
 
-For a newly created report, ChatGPT displays a live Boniforce card immediately.
-The card updates while the report is queued and calculated, then shows the
-Boniscore, assessment, and credit limit. The normal ChatGPT answer still follows.
+*Illustrative mockup with private projects and recent chats removed.*
 
-## Build a public Custom GPT (per-user keys)
+If the plugin is installed but its tools are unavailable, use
+**Plugins → Add → Create MCP App**, enter `https://mcp.boniforce.de/mcp`, and
+choose **OAuth**. Complete authorization and enable the connection in your
+chat. Developer mode may be required for this direct connection; availability
+depends on your account and workspace settings.
 
-The same server exposes a REST mirror at
-`https://mcp.boniforce.de/api/v1/*` plus an OpenAPI 3.1 spec, so you can
-wire it into a Custom GPT *Aktionen* panel. Each end-user supplies their
-own Boniforce API key during the GPT's OAuth flow — full per-user
-isolation. See the *For developers* section of the GitHub README for
-setup commands.
+See the [complete plugin tutorial](CHATGPT_PLUGIN_INSTALL.md) for setup,
+updates, credit costs, and troubleshooting. The Custom GPT builder and
+OpenAPI import are not part of this installation. A personal ZIP installation
+does not imply an approved listing in OpenAI's public directory.
 
-### Text progress in a Custom GPT
-
-Custom GPT Actions use text updates rather than the MCP connector's live app
-card. OpenAPI schema version **1.1.0** returns an immediate progress message,
-then guides ChatGPT to check the job every 30 seconds. A typical report takes
-about 120 seconds; processing may continue for up to 180 seconds before the
-status changes to delayed.
-
-The messages describe real stages such as collecting register data, analysing
-financial and risk data, calculating the Boniscore, and finalising the report.
-They intentionally avoid made-up percentage values. When processing finishes,
-the response includes the report whenever available so ChatGPT can read and
-present the Boniscore directly.
-
-ChatGPT controls whether every intermediate Action response is displayed or
-combined. For the native live card and progress bar, use the MCP connector.
-
-Existing GPT builders should re-import
-`https://mcp.boniforce.de/api/openapi.json`, save the GPT, and start a new chat.
+Compatible clients show a live card during report creation. Other clients
+use the same tools with text results. New reports usually take 30–120 seconds.
 
 ---
 
@@ -191,8 +169,8 @@ Sector keys: `automotive`, `healthcare`, `construction`,
 
 A new Boniscore report typically completes in **about 120 seconds** — the
 system pulls and analyses the latest Bundesanzeiger annual filing on demand.
-The assistant checks every 30 seconds and can continue for up to 180 seconds
-when processing takes longer than usual. For follow-up questions on the same
+The plugin follows the existing job and reports a delay if processing takes
+longer than usual; it should not create a duplicate paid report. For follow-up questions on the same
 company within the same session, the report is reused (no second fetch).
 
 ---
@@ -227,7 +205,8 @@ The 10 listed above. Data sources include Destatis (insolvencies), ifo,
 S&P Global PMI, Eurostat, and Bundesbank.
 
 **Does it work on free Claude / free ChatGPT plans?**
-Custom MCP connectors are paid-tier features on both platforms.
+Plugin and connector availability depends on the account and workspace settings.
+Check the installation options exposed by your client.
 
 **What if the report does not finish?**
 After 120 seconds the assistant reports that finalisation is taking longer

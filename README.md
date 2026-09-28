@@ -13,7 +13,7 @@ Boniforce collects and analyses the source data.
 
 ## What you get
 
-🔍 **Search any German company by name** — Claude finds the register entry for
+🔍 **Search any German company by name** — the assistant finds the register entry for
 you, including an advanced fallback for incomplete or alternative names.
 
 📊 **Boniscore + credit-limit recommendation on demand** — score from 0–100,
@@ -59,151 +59,103 @@ You'll need this once, when you first connect.
 Treat the key like a password. You can revoke or rotate it any time on the
 same page; revoking immediately disconnects the AI assistant.
 
-## Connect
+## Add Boniforce to ChatGPT
 
-The Boniforce-hosted server is at:
+Use **Plugins → Add → Upload plugin archive**. You do not need to create a
+Custom GPT or import an OpenAPI schema for this setup.
 
-```
-https://mcp.boniforce.de/mcp
-```
+### 1. Download the plugin
 
-### Install the public Boniforce skill or plugin
+[**Download the Boniforce plugin ZIP**](https://github.com/Caohung77/boniforce-mcp/raw/refs/heads/main/releases/boniforce-credit-check-plugin-0.3.2.zip)
 
-The **Boniforce Credit Intelligence** skill makes company-risk prompts trigger
-the full workflow automatically: reuse a recent report, retrieve financial
-history and ratios, map the company to a SectorBench branch with explicit match
-confidence, compare company and sector risk, and return a visual Markdown
-decision brief. It never invents a blended company/sector score.
+Save the `.zip` file without extracting it. Use the **plugin** archive, which
+contains the Boniforce workflow and MCP connection configuration.
 
-**Recommended — install the plugin.** It bundles the skill with the hosted MCP
-connection and OAuth setup:
+### 2. Upload it in ChatGPT
+
+1. Open [ChatGPT](https://chatgpt.com) and choose **Plugins** in the sidebar.
+2. Click **Add** in the upper-right corner.
+3. Choose **Upload plugin archive**.
+4. Select the downloaded Boniforce `.zip`, review the displayed permissions,
+   and complete the installation prompts.
+
+![Illustrative ChatGPT Plugins screen with Add open and Upload plugin archive highlighted](assets/chatgpt-plugins-install-mockup.png)
+
+*Illustrative mockup based on the September 2026 interface. Private projects,
+recent chats, and account-specific installed plugins have been removed.*
+
+### 3. Connect your Boniforce account
+
+If ChatGPT offers **Connect** or **Sign in** for Boniforce, complete that flow.
+Enter your Boniforce API key only on the Boniforce authorization page at
+`mcp.boniforce.de`. Never paste your key into the chat or the plugin ZIP.
+
+If the archive installs the workflow but Boniforce tools are unavailable,
+connect the server through **Plugins → Add → Create MCP App**:
+
+| Field | Value |
+|---|---|
+| Name | Boniforce |
+| MCP server URL | `https://mcp.boniforce.de/mcp` |
+| Authentication | OAuth |
+
+Follow the authorization prompts and select the Boniforce connection in your
+chat if ChatGPT requests it. Automatic connection discovery depends on the
+client. If **Create MCP App** is missing, enable **Developer mode** under
+**Settings → Security and login**, if available; workspace settings may
+restrict this option. An uploaded skill does not by itself prove that the
+remote tools are connected.
+
+### 4. Start a new chat and try it
+
+Select or mention Boniforce in a new chat and start with a free report lookup:
+
+> „Zeige meine vorhandenen Boniforce-Berichte, ohne eine neue kostenpflichtige Abfrage zu starten.“
+
+Then try an existing report or request a new check:
+
+> „Fasse den vorhandenen Bericht für [Unternehmen] mit Boniscore, Kreditlimit und Finanzentwicklung zusammen.“
+
+> „Prüfe [Unternehmen, Ort]. Nenne mir vor einer neuen Abfrage die anfallenden Credits.“
+
+Existing reports are reused where suitable. Company search costs **1 credit**,
+advanced search **5**, and a new Boniscore report **75**. Direct financial data
+and analysis cost **25 / 50**; uncached ownership retrieval costs **25**.
+New reports usually take **30–120 seconds**. Compatible clients show a live
+progress card; other clients use text results.
+
+For screenshots, updates, and troubleshooting, see the
+[complete ChatGPT plugin tutorial](docs/CHATGPT_PLUGIN_INSTALL.md).
+
+### Which Add option should I use?
+
+| Menu item | Purpose |
+|---|---|
+| **Upload plugin archive** | Install the packaged Boniforce plugin from this repository. Start here. |
+| **Create MCP App** | Connect the hosted Boniforce tools directly, or finish connection setup if the archive did not expose them. |
+| **Create plugin** | Author your own plugin; not required to install the provided ZIP. |
+
+Uploading this package is a personal installation. It does not mean that
+Boniforce is approved or listed in OpenAI's public directory. Official
+distribution follows [OpenAI's submission process](https://developers.openai.com/plugins/deploy/submission).
+
+### Add to Claude
+
+1. Open **Settings → Connectors → Add custom connector**.
+2. Enter `https://mcp.boniforce.de/mcp`.
+3. Complete OAuth using your own Boniforce API key on the Boniforce page.
+
+### Install in Codex
+
+For Codex users, the repository also provides a plugin marketplace:
 
 ```bash
 codex plugin marketplace add Caohung77/boniforce-mcp
 codex plugin add boniforce-credit-check@boniforce
 ```
 
-Then start a new conversation and ask:
-
-> *"Get the current Boniscore for Boniforce GmbH."*
-
-The plugin package is in
-[`plugins/boniforce-credit-check`](plugins/boniforce-credit-check), and a
-ready-to-upload archive is available as
-[`releases/boniforce-credit-check-plugin-0.3.2.zip`](releases/boniforce-credit-check-plugin-0.3.2.zip).
-
-**Standalone skill.** Users who already connected the Boniforce MCP can
-download
-[`releases/boniforce-credit-check-skill-0.3.2.zip`](releases/boniforce-credit-check-skill-0.3.2.zip)
-and extract the `boniforce-credit-check` folder into
-`$HOME/.agents/skills/`. Restart Codex if the skill does not appear.
-
-For ChatGPT web distribution, submit the plugin archive through OpenAI's
-plugin submission flow as **With MCP**, using
-`https://mcp.boniforce.de/mcp`. A downloadable ZIP alone does not publish a
-plugin to ChatGPT's universal directory.
-
-### Add to Claude (Claude.ai web or Claude Desktop)
-
-1. Open **Settings → Connectors → Add custom connector**.
-2. Paste the URL above.
-3. A browser window opens — paste your **Boniforce API key**. Done.
-
-### Add to ChatGPT (Pro, Plus, Business, Enterprise, Education)
-
-ChatGPT's custom MCP connectors are in **beta** and live behind Developer Mode.
-You need to enable it once:
-
-1. **chatgpt.com → Settings → Apps & Connectors**.
-2. **Erweiterte Einstellungen → Entwicklermodus** (Advanced settings → Developer mode) → toggle **on**.
-3. Back at the top of *Apps & Connectors*, click **App erstellen** (Create app).
-4. Fill the form:
-   - **Name**: `Boniforce`
-   - **Beschreibung** *(optional)*: e.g. *Sofort-Bonitätsprüfungen für deutsche Firmen — Boniscore, Kreditlimit, Bilanzanalyse.*
-   - **URL des MCP-Servers**: `https://mcp.boniforce.de/mcp` *(the `/mcp` suffix is required — ignore the `/sse` placeholder)*
-   - **Authentifizierung**: **OAuth** *(leave Erweiterte OAuth-Einstellungen closed — auto-discovery handles it)*
-5. Save → a browser window opens → paste your **Boniforce API key**. Done.
-
-When ChatGPT creates a new report, Boniforce now shows an inline live card
-immediately. It follows the calculation through queued/running/completed and
-shows the Boniscore result when ready; ChatGPT still provides its normal text
-assessment underneath.
-
-> Custom connectors are currently **web-only** in ChatGPT and not yet exposed
-> on the free tier.
-
-### Build a public Custom GPT (per-user keys)
-
-Want a public GPT in the ChatGPT directory that other users can adopt — but
-**each user uses their own Boniforce API key**? The same server exposes a
-REST mirror at `https://mcp.boniforce.de/api/v1/*` plus an OpenAPI spec, so
-you can wire it into a Custom GPT's *Aktionen* panel.
-
-1. Get an OAuth client for ChatGPT (one-off, on the server):
-
-   ```bash
-   docker exec -it boniforce-mcp boniforce-mcp register-gpt-client \
-     --name "ChatGPT Boniforce GPT" \
-     --redirect-uri "https://chatgpt.com/aip/<your-gpt-id>/oauth/callback"
-   ```
-
-   Copy `client_id` + `client_secret` from the output.
-
-2. In **chatgpt.com → GPTs erkunden → Erstellen → Konfigurieren → Aktionen hinzufügen**:
-
-   | Field | Value |
-   |---|---|
-   | Authentifizierung | **OAuth** |
-   | Client ID | from CLI |
-   | Client Secret | from CLI |
-   | Authorization URL | `https://mcp.boniforce.de/oauth/authorize` |
-   | Token URL | `https://mcp.boniforce.de/oauth/token` |
-   | Scope | `mcp` |
-   | Token Exchange Method | **POST request body** (`client_secret_post`) |
-   | Schema → "Von URL kopieren" | `https://mcp.boniforce.de/api/openapi.json` |
-   | Privacy-Policy-URL | `https://boniforce.de/datenschutz` |
-
-3. Save → publish (Nur ich / Mit Link / Öffentlich).
-
-#### Text progress in a Custom GPT
-
-Custom GPT Actions use text updates rather than the live MCP app card. Schema
-version **1.1.0** is designed around the typical 120-second report time:
-
-- `createReport` returns immediately with a `progress_message`.
-- `getJobStatus` checks again every 30 seconds and returns the next honest
-  stage: queued, started, processing, analysing, calculating, or finalising.
-- Most reports need about four checks over 120 seconds. The GPT may continue
-  for up to six checks over 180 seconds before describing the report as
-  delayed.
-- Completed responses include the report whenever available, so the GPT can
-  read `report.score` and present the Boniscore without another manual step.
-
-ChatGPT controls how intermediate Action responses are rendered and may
-occasionally combine text updates. Native progress cards and progress bars are
-available through the MCP connector; Custom GPT Actions support text only.
-
-If this Action was configured before schema version 1.1.0, re-import
-`https://mcp.boniforce.de/api/openapi.json`, save the GPT, and start a new chat.
-
-**Branch-level sector data** for 10 German industries (automotive,
-construction, healthcare, fintech, …) — current health scores, 12-month
-score history, AI-summarised monthly news reports, and Destatis insolvency
-trends — is also surfaced, powered by
-[Sectorbench](https://sectorbench.theaiwhisperer.cloud). Available **both
-through MCP** (Claude.ai connector + ChatGPT MCP connector) **and** via the
-Custom GPT OpenAPI schema. Same OAuth flow as the credit-data tools; the
-upstream Sectorbench call uses an operator-issued bearer token configured
-on the server (`BF_SECTORBENCH_TOKEN`), so end users don't need a separate
-Sectorbench key. Try: *"Show me the construction sector's health score and
-the latest monthly outlook."*
-
-End-user flow inside the public GPT:
-
-> User opens the GPT → asks a question → ChatGPT redirects to our
-> `/oauth/authorize` page → user pastes their **own** Boniforce API key →
-> token issued, stored per-user by ChatGPT → all subsequent calls use that
-> user's key. Same per-user isolation as the MCP connector path.
+Start a new conversation after installation. The plugin source is in
+[`plugins/boniforce-credit-check`](plugins/boniforce-credit-check).
 
 ### Try it
 
@@ -258,9 +210,8 @@ don't have one yet, contact your Boniforce admin.
 
 **How long does a credit check take?**
 A new report typically completes in **about 120 seconds** because Boniforce
-pulls and analyses Bundesanzeiger filings on demand. The GPT checks every
-30 seconds and can continue for up to 180 seconds when processing takes longer
-than usual.
+pulls and analyses Bundesanzeiger filings on demand. The plugin follows the existing job until completion or reports a delay.
+It should not create a duplicate report because the first one is taking longer.
 
 **Will my chat history be sent to Boniforce?**
 No. The model only sends Boniforce the company identifiers it needs (name +
@@ -270,12 +221,10 @@ HRB number). Your conversation stays between you and Anthropic / OpenAI.
 Yes — anywhere your Boniforce key can be rotated. As soon as the key is
 invalidated, the connector stops working until you paste a new one.
 
-**Does it work on the free Claude / free ChatGPT plans?**
-Custom connectors are paid-tier features.
-- **Claude**: paid Claude.ai plans (web + desktop).
-- **ChatGPT**: Pro, Plus, Business, Enterprise, Education on
-  [chatgpt.com](https://chatgpt.com) — currently in beta and gated behind
-  *Settings → Apps → Advanced settings → Developer mode*.
+**Does my ChatGPT account support plugins?**
+Use the Plugins menu shown above. Archive upload and custom MCP connection
+availability can vary by account and workspace settings. If an option is
+missing, check Developer mode or ask your workspace administrator.
 
 **Can my whole team share one MCP server?**
 Yes. Each teammate adds the same URL `https://mcp.boniforce.de/mcp` and
