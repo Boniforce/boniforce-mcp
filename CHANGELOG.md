@@ -6,6 +6,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.7.0] — 2026-09-28
+
 ### Added
 - Add staged text progress for Custom GPT Actions: report creation returns
   immediately, status checks default to 30 seconds, the normal expectation is
