@@ -61,91 +61,47 @@ same page; revoking immediately disconnects the AI assistant.
 
 ## Add Boniforce to ChatGPT
 
-Use **Plugins → Add → Upload plugin archive**. You do not need to create a
-Custom GPT or import an OpenAPI schema for this setup.
+**The current v0.5.0 direct-MCP ZIP is a desktop package.** ChatGPT can accept
+its upload but mark it **Desktop only**, so installing it does not make scoring
+available in a ChatGPT web conversation.
 
-### 1. Download the plugin
+For the customer-facing ChatGPT integration, Boniforce must register and
+publish its MCP app, then distribute a plugin that references that app.
+The public directory is available across ChatGPT plans, but each app's plan,
+region, workspace and permission requirements still apply. **Free ChatGPT
+support is not yet verified for Boniforce.** A Free ChatGPT account also does
+not remove Boniforce's existing account and credit requirements.
 
-[**Download Boniforce plugin v0.5.0 (ZIP)**](https://github.com/Boniforce/boniforce-mcp/raw/refs/heads/main/releases/boniforce-credit-check-plugin-0.5.0.zip)
+### Customer setup after publication
 
-Save the `.zip` file without extracting it. Use the **plugin** archive, which
-contains the Boniforce workflow and MCP connection configuration.
+1. Open the published Boniforce listing in ChatGPT's Plugins directory.
+2. Install it and connect your Boniforce account when prompted.
+3. Complete OAuth only on `https://mcp.boniforce.de`.
+4. Start a new chat, select Boniforce, and ask:
 
-### 2. Upload it in ChatGPT
+> Zeige meine vorhandenen Boniforce-Berichte, ohne Credits auszugeben.
 
-1. Open [ChatGPT](https://chatgpt.com) and choose **Plugins** in the sidebar.
-2. Click **Add** in the upper-right corner.
-3. Choose **Upload plugin archive**.
-4. Select the downloaded Boniforce `.zip`, review the displayed permissions,
-   and complete the installation prompts.
+Do not send Free users through developer mode or ask them to paste API keys
+into chat. An empty report list is a successful connection test. Report
+creation is a separate charged action.
 
-![Illustrative ChatGPT Plugins screen with Add open and Upload plugin archive highlighted](assets/chatgpt-plugins-install-mockup.png)
+### Developer testing and packages
 
-*Illustrative mockup based on the September 2026 interface. Private projects,
-recent chats, and account-specific installed plugins have been removed.*
+- [Desktop/Codex package v0.5.0](https://github.com/Boniforce/boniforce-mcp/raw/refs/heads/main/releases/boniforce-credit-check-plugin-0.5.0.zip): direct remote MCP connection; **not a ChatGPT web installer**.
+- ChatGPT app-linked package: build using a real registered `plugin_asdk_app_…`
+  ID. It excludes both MCP configuration files and links `.app.json` from both
+  manifests. A `Plugin_…` listing ID is not a registered app ID.
+- Public distribution: submit the MCP endpoint and skills through OpenAI's
+  **With MCP** process. A private testing connection or workspace publication
+  does not grant access to unrelated Free accounts.
 
-### 3. Connect your Boniforce account
+The [installation guide](docs/CHATGPT_PLUGIN_INSTALL.md) covers the exact build
+and connection steps. The [submission dossier](docs/CHATGPT_PLUGIN_SUBMISSION.md)
+tracks what remains before public release.
 
-If ChatGPT offers **Connect** or **Sign in** for Boniforce, complete that flow.
-Enter your Boniforce API key only on the Boniforce authorization page at
-`mcp.boniforce.de`. Never paste your key into the chat or the plugin ZIP.
-
-If the archive installs the workflow but Boniforce tools are unavailable,
-connect the server through **Plugins → Add → Create MCP App**:
-
-| Field | Value |
-|---|---|
-| Name | Boniforce |
-| MCP server URL | `https://mcp.boniforce.de/mcp` |
-| Authentication | OAuth |
-
-Follow the authorization prompts and select the Boniforce connection in your
-chat if ChatGPT requests it. Automatic connection discovery depends on the
-client. If **Create MCP App** is missing, enable **Developer mode** under
-**Settings → Security and login**, if available; workspace settings may
-restrict this option. An uploaded skill does not by itself prove that the
-remote tools are connected.
-
-### 4. Start a new chat and try it
-
-Select or mention Boniforce in a new chat and start with a free report lookup:
-
-> „Zeige meine vorhandenen Boniforce-Berichte, ohne eine neue kostenpflichtige Abfrage zu starten.“
-
-Then try an existing report or request a new check:
-
-> „Fasse den vorhandenen Bericht für [Unternehmen] mit Boniscore, Kreditlimit und Finanzentwicklung zusammen.“
-
-> „Prüfe [Unternehmen, Ort]. Nenne mir vor einer neuen Abfrage die anfallenden Credits.“
-
-Existing reports are reused where suitable. Company search costs **1 credit**,
-advanced search **5**, and a new Boniscore report **75**. Direct financial data
-and analysis cost **25 / 50**; uncached ownership retrieval costs **25**.
-New reports usually take **30–120 seconds**. Compatible clients show a live
-progress card; other clients use text results.
-
-The embedded card requires an **MCP app connection**. The Custom GPT Actions
-integration is a separate interface and does not load this card. See
-[embedded progress setup and verification](docs/EMBEDDED_PROGRESS_UI.md).
-
-Completed reports also support an [interactive financial and branch review](docs/FINANCIAL_REVIEW.md):
-annual financial charts, ratio tables, sector trends and insolvencies,
-source-linked findings, data gaps, and a detailed narrative when requested.
-
-For screenshots, updates, and troubleshooting, see the
-[complete ChatGPT plugin tutorial](docs/CHATGPT_PLUGIN_INSTALL.md).
-
-### Which Add option should I use?
-
-| Menu item | Purpose |
-|---|---|
-| **Upload plugin archive** | Install the packaged Boniforce plugin from this repository. Start here. |
-| **Create MCP App** | Connect the hosted Boniforce tools directly, or finish connection setup if the archive did not expose them. |
-| **Create plugin** | Author your own plugin; not required to install the provided ZIP. |
-
-Uploading this package is a personal installation. It does not mean that
-Boniforce is approved or listed in OpenAI's public directory. Official
-distribution follows [OpenAI's submission process](https://developers.openai.com/plugins/deploy/submission).
+Sources: [OpenAI plugin access and Desktop-only restrictions](https://help.openai.com/en/articles/20001256-plugins-in-chatgpt-and-codex),
+[Packaging registered apps](https://developers.openai.com/plugins/build/plugins),
+[Public submission](https://developers.openai.com/plugins/deploy/submission).
 
 ### Add to Claude
 

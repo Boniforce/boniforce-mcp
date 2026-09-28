@@ -1,123 +1,111 @@
-# Install Boniforce in ChatGPT
+# Boniforce in ChatGPT: connection and distribution
 
-Updated **28 September 2026** for the **Plugins** interface. The menu labels
-below follow the current interface shown in the reference screenshot.
+Verified against official documentation and the signed-in Free account on
+28 September 2026. The Free account's imported Boniforce v0.5.0 listing shows
+**Desktop only / Open in desktop app**, with the raw MCP endpoint listed.
+Installation succeeded, but this is not a working ChatGPT web connection.
 
-## What you need
+## Choose the correct distribution
 
-- A ChatGPT account/workspace with **Plugins** and archive upload available.
-- A Boniforce account and API key for the OAuth connection.
-- The [Boniforce plugin v0.5.0 ZIP](https://github.com/Boniforce/boniforce-mcp/raw/refs/heads/main/releases/boniforce-credit-check-plugin-0.5.0.zip).
+| Package / route | Purpose | Status |
+|---|---|---|
+| [Direct-MCP v0.5.0 ZIP](https://github.com/Boniforce/boniforce-mcp/raw/refs/heads/main/releases/boniforce-credit-check-plugin-0.5.0.zip) | Desktop/Codex, with per-user OAuth | Tools responded in Codex; desktop-only in the inspected Free web account |
+| App-linked ChatGPT ZIP | References an existing registered Boniforce app | Builder ready; real app ID and web acceptance test required |
+| Public directory listing | Customer distribution, including eligible Free accounts | Requires OpenAI submission, approval and publication; Free eligibility must be verified |
 
-The download is **plugin v0.5.0**. Both manifests inside the ZIP declare
-`0.5.0`; the server has its own independent version number. Keep the ZIP intact;
-do not upload the GitHub repository's **Download ZIP** or a skills-only bundle.
+The directory is available across plans, but individual plugin capabilities
+depend on plan, region, workspace, role and the underlying app. A ZIP or a
+private app ID cannot bypass these controls. Free ChatGPT access is separate
+from a Boniforce account and Boniforce credit costs. No public installation
+link or guaranteed Free-plan support is claimed yet.
 
-## 1. Open the installation menu
+## Publisher: register the MCP app once
 
-In ChatGPT, select **Plugins** in the sidebar, then **Add** in the top right.
-Choose **Upload plugin archive**.
+Use an account with access to **Create MCP App** / developer mode. In the
+inspected Free account, Add offered Create plugin and Upload plugin, but no
+Create MCP App. Customers should not have to perform this developer setup.
 
-![ChatGPT Plugins installation mockup with Upload plugin archive highlighted](../assets/chatgpt-plugins-install-mockup.png)
-
-*Illustrative mockup, not a screenshot of a connected Boniforce account.
-No personal projects, recent chats, or account-specific installed plugins are shown.*
-
-## 2. Upload Boniforce
-
-Select the Boniforce plugin `.zip` you downloaded. Review its name and requested
-capabilities, then finish the installation prompts. It may be named
-**Boniforce Credit Intelligence** or **Boniforce Bonitätsprüfung**, depending
-on the package version. Open the installed plugin's details if ChatGPT offers
-a connection step.
-
-The archive packages the workflow plus MCP connection configuration. Whether
-the host connects that remote server automatically depends on the client.
-
-## 3. Authorize your account
-
-Use Boniforce's **Connect** / **Sign in** action if shown. The authorization
-page must be on `https://mcp.boniforce.de`. Enter your own Boniforce API key
-there, then return to ChatGPT. Do not paste it into a chat or modify the ZIP
-to include it.
-
-If tools are missing after upload, use **Plugins → Add → Create MCP App**:
-
-| Field | Value |
+| Setting | Value |
 |---|---|
 | Name | Boniforce |
-| MCP server URL | `https://mcp.boniforce.de/mcp` |
+| Server URL | `https://mcp.boniforce.de/mcp` |
 | Authentication | OAuth |
+| Scope, if asked | `mcp` |
 
-Use automatic OAuth discovery when offered. You normally do not need to
-enter a client secret. If scope is requested, use `mcp`. Complete the
-Boniforce authorization page and select the connection for your chat when
-prompted. This direct connection exposes the tools; the uploaded plugin adds
-the reusable workflow instructions.
+Complete OAuth on `mcp.boniforce.de`, scan the tools, and verify `list_reports`
+in a new chat. Copy the registered MCP connection's `plugin_asdk_app_…` ID
+from its details URL. A `Plugin_…` ID identifies an uploaded plugin listing
+and cannot substitute for this connection ID. Do not alter its prefix to
+make it look like an app ID.
 
-If **Create MCP App** is not available, look under **Settings → Security and
-login → Developer mode**. Some older interfaces place Developer mode under
-Apps → Advanced settings. Workspace administrators may restrict access.
-The exact connection prompts can vary; this tutorial does not claim an
-end-to-end installation has been tested on every account.
+## Build the app-linked package
 
-## 4. Verify the connection without creating a report
+From the repository root, use the actual registered ID:
 
-Start a new chat, select or mention Boniforce, and ask:
+```sh
+python scripts/build_plugin.py --target chatgpt --app-id "$BONIFORCE_CHATGPT_APP_ID"
+```
 
-> Zeige meine vorhandenen Boniforce-Berichte, ohne Credits auszugeben.
+The variable must contain the real `plugin_asdk_app_…` identifier, not an API
+key. The builder refuses missing IDs, plugin listing URLs and `Plugin_…` IDs.
+It validates syntax, not registration or account access.
 
-A working connection returns your report list or an empty list. An empty list
-can simply mean the account has no reports yet. A login request means account
-authorization is still needed. A claim that tools are unavailable means the
-remote MCP connection has not been enabled in this chat.
+The resulting `releases/boniforce-credit-check-chatgpt-0.5.0.zip`:
 
-Next, use an existing report:
+- Includes `.app.json` with the connection ID supplied by the publisher.
+- References `.app.json` in both the root manifest's `extensions.com.openai`
+  and the compatibility manifest. The inline extension takes precedence.
+- Excludes `mcp.json`, `.mcp.json`, `mcpServers`, and the skill's direct MCP
+  dependency configuration, which belong to the desktop package.
+- Preserves the skill, cost disclosures, references and branding; adjusts
+  connection guidance to use the registered app rather than developer mode.
 
-> Fasse den vorhandenen Bericht für [Unternehmen] mit Boniscore, Kreditlimit und Finanzentwicklung zusammen.
+This creates a separate artifact and does not alter the desktop package or
+its checksums. No ChatGPT artifact is released with an invented connection ID.
+Adding `.app.json` to the old archive while keeping its MCP declarations is
+insufficient to address the documented Desktop-only restriction.
 
-Or request a new company check with costs disclosed:
+## Verify in ChatGPT
 
-> Prüfe [Unternehmen, Ort]. Nenne mir vor einer neuen Abfrage die anfallenden Credits.
+Upload the app-linked ZIP where permitted. If the existing listing retains
+Desktop only after an update, test a fresh app-linked installation; do not
+assume that the old listing's restriction clears automatically. Confirm:
 
-Company search costs 1 credit; advanced search 5; a new report 75. Direct
-financial data/analysis cost 25/50. Ownership retrieval is free from a fresh
-cache and costs 25 credits on refresh. Existing report reads are free.
-Report creation typically takes 30–120 seconds. Where supported, a live card
-shows progress and the result. Never start another paid report just because
-the first is still processing.
+1. The included Boniforce app is visible and accessible to the test account.
+2. OAuth completes, and the listing can be used in a ChatGPT web chat.
+3. `Zeige meine vorhandenen Boniforce-Berichte, ohne Credits auszugeben.`
+   actually calls `list_reports` and returns reports or an empty list.
+4. Existing report retrieval works. Only test charged report creation with
+   explicit authorization and a suitable test account.
 
-## Update an existing installation
+The final customer test must use a separate **Free** account in a supported
+region after the app has been made available to that account. A successful
+Codex call or publisher-account test does not establish Free-plan support.
 
-Download the current plugin archive from the repository and return to
-**Plugins → Add → Upload plugin archive**. Follow ChatGPT's prompts for the
-existing installation. If the client reports a duplicate rather than offering
-an update, open the installed plugin's settings and use its available
-update/remove controls before uploading again. Start a new chat afterwards;
-reconnect OAuth only if requested. Do not install multiple duplicate MCP
-connections just to refresh the workflow.
+## Public distribution for customers
+
+Use the [With MCP submission](https://developers.openai.com/plugins/deploy/submission)
+for the endpoint, upload the skills bundle, complete publisher and domain
+verification, provide reviewer access, obtain approval, and publish. A private
+developer connection and workspace publication do not make the app available
+to arbitrary personal Free accounts. See the [submission dossier](CHATGPT_PLUGIN_SUBMISSION.md).
+
+After eligible public access is confirmed, customers install Boniforce from
+the directory, connect their own Boniforce account, and select it in a new chat.
+Never bundle a shared API key or request the key in chat.
 
 ## Troubleshooting
 
-| What you see | What to do |
+| Symptom | Meaning / action |
 |---|---|
-| No Plugins or upload option | Check account/workspace access; ask the administrator if the workspace manages plugins. |
-| ZIP rejected | Confirm it is the plugin archive from this repo, still zipped, rather than the full repository or skills-only ZIP. |
-| Plugin installed but tools unavailable | Add the OAuth connection with **Create MCP App**, enable it for the chat, and start a new conversation. |
-| OAuth fails | Confirm the URL ends in `/mcp`, choose OAuth, and use a valid Boniforce key on the Boniforce page. |
-| Empty report list | Connection can still be working; the account may have no reports. |
-| Insufficient credits | The requested operation is unavailable with the current balance; reusing an existing report may still work. |
-| Report delayed | Check the existing job's status; do not create a replacement report. |
+| Installed, but Desktop only | Direct MCP declarations route the import to desktop; use the app-linked web build and verify the listing's capabilities. |
+| Required app unavailable | Check app publication, account eligibility and permissions; reinstalling the skill cannot grant access. |
+| OAuth reauthentication required / missing issuer in saved credentials | Reconnect through the host's OAuth flow, then retry in a new chat. The public server metadata currently advertises the correct issuer. |
+| Tool unavailable without a failed call | Do not infer that the server is down; inspect connection and tool availability. |
+| Empty report list | Successful connection; there may be no existing reports. |
+| Insufficient Boniforce credits | Existing free report reads may still work; a ChatGPT subscription does not pay for Boniforce usage. |
 
-## Personal installation and the official directory
-
-Archive upload installs the provided plugin for your use. Official public
-listing requires a separate OpenAI review and publication. This tutorial does
-not claim that Boniforce is already listed or approved. You do not need the
-Custom GPT builder or an OpenAPI import for this plugin installation.
-
-Sources: [OpenAI plugin packaging and connections](https://developers.openai.com/plugins/build/plugins),
-[OAuth authentication](https://developers.openai.com/plugins/build/auth),
-[Public submission](https://developers.openai.com/plugins/deploy/submission).
-The **Add** menu labels and archive-upload entry are based on the provided
-September 2026 interface screenshot; the mockup removes personal content.
+Sources: [Plugins and Desktop-only imports](https://help.openai.com/en/articles/20001256-plugins-in-chatgpt-and-codex),
+[Registered app mappings](https://developers.openai.com/plugins/build/plugins),
+[Testing connections](https://developers.openai.com/plugins/deploy/connect-chatgpt),
+[Account authorization](https://help.openai.com/en/articles/20001494-connecting-and-managing-app-accounts-in-chatgpt).

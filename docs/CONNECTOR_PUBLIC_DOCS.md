@@ -40,8 +40,8 @@ Connector URL: **`https://mcp.boniforce.de/mcp`**
 - **Claude.ai** (Pro, Max, Team, Enterprise) — *Settings → Connectors →
   Add custom connector*.
 - **Claude Desktop** (Mac, Windows) — same path.
-- **ChatGPT** — Plugins with archive upload; direct MCP connection may require
-  Developer mode and workspace permission.
+- **ChatGPT** — requires an available registered Boniforce app. Free-plan
+  support remains unverified; the direct-MCP ZIP is desktop-only.
 - **Any MCP-compatible client** that supports Streamable HTTP + OAuth 2.1.
 
 Available installation options depend on your account and workspace settings.
@@ -78,33 +78,20 @@ at rest, and bound to your Claude account via OAuth.
 
 ## Add to ChatGPT with a plugin
 
-1. [Download Boniforce plugin v0.5.0 (ZIP)](https://github.com/Boniforce/boniforce-mcp/raw/refs/heads/main/releases/boniforce-credit-check-plugin-0.5.0.zip) without extracting it.
-2. In ChatGPT, open **Plugins → Add → Upload plugin archive**.
-3. Select the ZIP and complete the installation prompts.
-4. Use **Connect** / **Sign in** if offered. Enter your Boniforce API key only
-   on the authorization page at `https://mcp.boniforce.de`.
-5. Start a new chat, select or mention Boniforce, and ask for your existing
-   reports first. No new paid report is needed to test the connection.
+The [v0.5.0 direct-MCP ZIP](https://github.com/Boniforce/boniforce-mcp/raw/refs/heads/main/releases/boniforce-credit-check-plugin-0.5.0.zip)
+is for desktop/Codex. Uploading it can result in a **Desktop only** plugin,
+which cannot run in ChatGPT web.
 
-![ChatGPT Plugins menu with Upload plugin archive highlighted](../assets/chatgpt-plugins-install-mockup.png)
+The customer-facing web integration requires the registered Boniforce app and
+an app-linked package, followed by appropriate distribution. Free-plan access
+has not yet been verified. Do not ask Free users to enable developer mode.
+After public availability is established, users install the directory listing,
+complete OAuth, and test by listing existing reports without spending credits.
 
-*Illustrative mockup with private projects and recent chats removed.*
+See the [installation guide](CHATGPT_PLUGIN_INSTALL.md) for developer setup,
+package selection and troubleshooting, and the
+[submission dossier](CHATGPT_PLUGIN_SUBMISSION.md) for public distribution.
 
-If the plugin is installed but its tools are unavailable, use
-**Plugins → Add → Create MCP App**, enter `https://mcp.boniforce.de/mcp`, and
-choose **OAuth**. Complete authorization and enable the connection in your
-chat. Developer mode may be required for this direct connection; availability
-depends on your account and workspace settings.
-
-See the [complete plugin tutorial](CHATGPT_PLUGIN_INSTALL.md) for setup,
-updates, credit costs, and troubleshooting. The Custom GPT builder and
-OpenAPI import are not part of this installation. A personal ZIP installation
-does not imply an approved listing in OpenAI's public directory.
-
-Compatible clients show a live card during report creation. Other clients
-use the same tools with text results. New reports usually take 30–120 seconds.
-
----
 
 ## What you can ask
 
