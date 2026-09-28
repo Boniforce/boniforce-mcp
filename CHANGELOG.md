@@ -6,6 +6,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Plugin 0.5.0 and embedded analysis — 2026-09-28
+- Add financial diagrams, ratio tables, industry score and insolvency histories,
+  all supplied industry dimensions, news, evidence-linked findings and data gaps.
+- Extend the full-review workflow to consider all returned company and industry
+  data, with explicit sources, calculations, interpretation and follow-up checks.
+- Normalize financial values without inventing units, zero-filling missing data,
+  blending credit scores or changing the original credit recommendation.
+- Initialize the progress card using the MCP Apps handshake and a versioned
+  resource URI; show actual job states, elapsed time and an animated activity bar.
+- Support resize, host theme, cancellation, disconnect and read-only retry.
+- Publish reproducible plugin/skills archives and checksums for version 0.5.0.
+
 ### Plugin 0.4.0 — 2026-09-28
 - Publish the portable Boniforce plugin and matching skills archives, with
   German branding, a bundled logo, and compatibility manifests for older clients.

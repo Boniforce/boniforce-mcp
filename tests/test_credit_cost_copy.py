@@ -92,10 +92,11 @@ async def test_mcp_exposes_live_boniscore_progress_app():
     assert 'bridgeRequest("tools/call"' in result.contents[0].content
     assert 'callTool("get_job_status"' in result.contents[0].content
     assert 'callTool("get_report"' in result.contents[0].content
-    assert "AVERAGE_DURATION_SECONDS = 120" in result.contents[0].content
     assert 'window.addEventListener("openai:set_globals"' in result.contents[0].content
     assert "toolResponseMetadata" in result.contents[0].content
-    assert 'elapsedEl.textContent = `100 %' in result.contents[0].content
+    assert 'bridgeRequest("ui/initialize"' in result.contents[0].content
+    assert 'notify("ui/notifications/initialized")' in result.contents[0].content
+    assert 'notify("ui/notifications/size-changed"' in result.contents[0].content
     assert ".card.complete .progress-shell" not in result.contents[0].content
     assert "innerHTML" not in result.contents[0].content
 
@@ -145,7 +146,7 @@ def test_plugin_release_uses_server_progress_without_duplicate_narration():
         plugin_dir / "skills" / "boniforce-credit-check" / "SKILL.md"
     ).read_text()
 
-    assert manifest["version"] == "0.4.0"
+    assert manifest["version"] == "0.5.0"
     assert "MCP server's localized progress notifications" in skill
     assert "live MCP App progress card" in skill
     assert "Do not add assistant-authored polling updates" in skill

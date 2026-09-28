@@ -1,6 +1,7 @@
 """Self-contained MCP App shown while a Boniscore report is generated."""
 
-BONISCORE_PROGRESS_UI_URI = "ui://boniforce/boniscore-progress.html"
+# Versioned because hosts cache UI resources by URI.
+BONISCORE_PROGRESS_UI_URI = "ui://boniforce/boniscore-progress-v2.html"
 
 BONISCORE_PROGRESS_HTML = r"""
 <!doctype html>
@@ -115,12 +116,22 @@ BONISCORE_PROGRESS_HTML = r"""
     }
 
     .progress {
-      width: 8%;
+      width: 36%;
       height: 100%;
       border-radius: inherit;
       background: linear-gradient(90deg, #255bd2, #5d91f2);
-      transition: width 700ms cubic-bezier(.22, .9, .3, 1), background 300ms ease;
+      animation: working 1.8s ease-in-out infinite alternate;
     }
+
+    @keyframes working { from { transform: translateX(-80%); } to { transform: translateX(260%); } }
+    .steps { display: flex; gap: 12px; padding: 0; margin: 20px 0 0; list-style: none; }
+    .steps li { flex: 1; border-top: 2px solid var(--line); padding-top: 9px; color: var(--muted); font-size: 12px; }
+    .steps li.active { border-color: var(--blue); color: var(--ink); font-weight: 700; }
+    .steps li.done { border-color: var(--green); }
+    .company { margin: 0 0 12px; font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+    .note { margin: 14px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+    .retry { margin-top: 14px; padding: 9px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); color: var(--ink); font: inherit; cursor: pointer; }
+    .card.paused .progress { animation-play-state: paused; }
 
     .footer {
       display: flex;
@@ -201,7 +212,8 @@ BONISCORE_PROGRESS_HTML = r"""
 
     .card.complete::before { background: var(--green); }
     .card.complete .dot { background: var(--green); animation: none; box-shadow: none; }
-    .card.complete .progress { background: var(--green); }
+    .card.complete .progress { width: 100%; background: var(--green); animation: none; }
+    .card.complete .steps li { border-color: var(--green); }
     .card.failed .progress-shell { display: none; }
     .card.complete .result { display: grid; }
     .card.failed::before { background: var(--red); }
@@ -212,8 +224,21 @@ BONISCORE_PROGRESS_HTML = r"""
       100% { box-shadow: 0 0 0 0 rgba(40, 100, 220, 0); }
     }
 
+    :root[data-theme="dark"] {
+      --blue: #8bb4ff;
+      --ink: #edf4ff;
+      --muted: #a8b5c8;
+      --paper: #0d1727;
+      --panel: rgba(17, 30, 50, .94);
+      --line: rgba(189, 211, 244, .15);
+      --blue-soft: #1d355d;
+      --shadow: 0 16px 40px rgba(0, 0, 0, .24);
+    }
+    :root[data-theme="dark"] .score-box, :root[data-theme="dark"] .decision-box { background: rgba(255,255,255,.035); }
+    :root[data-theme="dark"] .open-chat { background: #edf4ff; color: #102039; }
     @media (prefers-color-scheme: dark) {
-      :root {
+      :root:not([data-theme="light"]) {
+        --blue: #8bb4ff;
         --ink: #edf4ff;
         --muted: #a8b5c8;
         --paper: #0d1727;
@@ -222,8 +247,8 @@ BONISCORE_PROGRESS_HTML = r"""
         --blue-soft: #1d355d;
         --shadow: 0 16px 40px rgba(0, 0, 0, .24);
       }
-      .score-box, .decision-box { background: rgba(255,255,255,.035); }
-      .open-chat { background: #edf4ff; color: #102039; }
+      :root:not([data-theme="light"]) .score-box, :root:not([data-theme="light"]) .decision-box { background: rgba(255,255,255,.035); }
+      :root:not([data-theme="light"]) .open-chat { background: #edf4ff; color: #102039; }
     }
 
     @media (max-width: 430px) {
@@ -233,27 +258,35 @@ BONISCORE_PROGRESS_HTML = r"""
 
     @media (prefers-reduced-motion: reduce) {
       .dot { animation: none; }
-      .progress { transition: none; }
+      .progress { animation: none; width: 50%; }
     }
   </style>
 </head>
 <body>
-  <main class="card" id="card" aria-live="polite">
+  <main class="card" id="card" aria-busy="true">
     <div class="eyebrow">
       <span class="brand">Boniforce · Kreditprüfung</span>
       <span class="live"><span class="dot" aria-hidden="true"></span><span id="state">Live</span></span>
     </div>
 
-    <h1 id="title">Boniscore-Bericht gestartet</h1>
-    <p class="message" id="message">Die Unternehmensdaten werden geprüft.</p>
+    <p class="company" id="company" hidden></p>
+    <h1 id="title">Boniscore wird vorbereitet</h1>
+    <p class="message" id="message" role="status">Die Live-Anzeige wird verbunden.</p>
 
-    <div class="progress-shell" role="progressbar" aria-label="Geschätzter Fortschritt" aria-valuemin="0" aria-valuemax="100" aria-valuenow="8" id="progressShell">
+    <div class="progress-shell" role="progressbar" aria-label="Boniscore wird erstellt" id="progressShell">
       <div class="progress" id="progress"></div>
     </div>
     <div class="footer" id="footer">
-      <span id="phase">Daten werden vorbereitet</span>
-      <span id="elapsed">00:00</span>
+      <span id="phase">Verbindung wird hergestellt</span>
+      <span id="elapsed">Meist 30–120 Sekunden</span>
     </div>
+    <ol class="steps" aria-label="Berichtsstatus">
+      <li id="stepRequested">1 · Angefordert</li>
+      <li id="stepRunning">2 · In Bearbeitung</li>
+      <li id="stepReady">3 · Bericht bereit</li>
+    </ol>
+    <p class="note" id="note">Der Status aktualisiert sich automatisch. Das Ergebnis erscheint hier.</p>
+    <button class="retry" id="retry" type="button" hidden>Live-Status erneut laden</button>
 
     <section class="result" aria-label="Boniscore-Ergebnis">
       <div class="score-box">
@@ -272,279 +305,380 @@ BONISCORE_PROGRESS_HTML = r"""
   <script>
     (() => {
       "use strict";
-
-      const card = document.getElementById("card");
-      const stateEl = document.getElementById("state");
-      const titleEl = document.getElementById("title");
-      const messageEl = document.getElementById("message");
-      const phaseEl = document.getElementById("phase");
-      const elapsedEl = document.getElementById("elapsed");
-      const progressEl = document.getElementById("progress");
-      const progressShell = document.getElementById("progressShell");
-      const scoreEl = document.getElementById("score");
-      const decisionEl = document.getElementById("decision");
-      const limitEl = document.getElementById("limit");
-      const openChat = document.getElementById("openChat");
-
+      const el = (id) => document.getElementById(id);
+      const card = el("card");
+      const stateEl = el("state");
+      const titleEl = el("title");
+      const messageEl = el("message");
+      const phaseEl = el("phase");
+      const elapsedEl = el("elapsed");
+      const progressShell = el("progressShell");
+      const openChat = el("openChat");
+      const retry = el("retry");
       const pendingRequests = new Map();
-      const AVERAGE_DURATION_SECONDS = 120;
       let nextRequestId = 1;
-      let startedAt = Date.now();
+      let bridgeReady = false;
+      let bridgePromise = null;
+      let hostCapabilities = {};
       let jobId = null;
       let reportId = null;
-      let lastStatus = "queued";
+      let startedAt = null;
       let stopped = false;
+      let disposed = false;
+      let polling = false;
       let fetchingReport = false;
       let pollTimer = null;
       let bootstrapTimer = null;
+      let errors = 0;
+      let lastSize = "";
+      let resizeObserver = null;
+
+      function notify(method, params = {}) {
+        window.parent.postMessage({ jsonrpc: "2.0", method, params }, "*");
+      }
 
       function bridgeRequest(method, params) {
         const id = nextRequestId++;
-        window.parent.postMessage({ jsonrpc: "2.0", id, method, params }, "*");
         return new Promise((resolve, reject) => {
-          pendingRequests.set(id, { resolve, reject });
-          window.setTimeout(() => {
-            if (!pendingRequests.has(id)) return;
+          const timer = window.setTimeout(() => {
             pendingRequests.delete(id);
             reject(new Error("Bridge request timed out"));
           }, 15000);
+          pendingRequests.set(id, { resolve, reject, timer });
+          window.parent.postMessage({ jsonrpc: "2.0", id, method, params }, "*");
         });
       }
 
-      async function callTool(name, args) {
-        if (window.openai && typeof window.openai.callTool === "function") {
-          return window.openai.callTool(name, args);
+      function reportSize() {
+        if (!bridgeReady || disposed) return;
+        const height = Math.ceil(document.body.getBoundingClientRect().height);
+        if (String(height) === lastSize) return;
+        lastSize = String(height);
+        notify("ui/notifications/size-changed", { height });
+      }
+
+      function applyContext(context) {
+        if (context && ["light", "dark"].includes(context.theme)) {
+          document.documentElement.style.colorScheme = context.theme;
+          document.documentElement.dataset.theme = context.theme;
         }
-        return bridgeRequest("tools/call", { name, arguments: args });
+      }
+
+      async function initializeBridge() {
+        if (bridgeReady) return;
+        if (bridgePromise) return bridgePromise;
+        bridgePromise = (async () => {
+          const result = await bridgeRequest("ui/initialize", {
+            appInfo: { name: "Boniforce Live-Status", version: "2.0.0" },
+            appCapabilities: { availableDisplayModes: ["inline"] },
+            protocolVersion: "2026-01-26"
+          });
+          if (disposed) return;
+          if (result.protocolVersion !== "2026-01-26") throw new Error("Unsupported UI protocol");
+          hostCapabilities = result.hostCapabilities || {};
+          applyContext(result.hostContext);
+          bridgeReady = true;
+          notify("ui/notifications/initialized");
+          reportSize();
+        })();
+        try { await bridgePromise; } finally { bridgePromise = null; }
+      }
+
+      async function callTool(name, args) {
+        let result;
+        if (bridgeReady && hostCapabilities.serverTools) {
+          result = await bridgeRequest("tools/call", { name, arguments: args });
+        } else if (window.openai && typeof window.openai.callTool === "function") {
+          result = await window.openai.callTool(name, args);
+        } else {
+          await initializeBridge();
+          if (!hostCapabilities.serverTools) throw new Error("Tool calls unavailable");
+          result = await bridgeRequest("tools/call", { name, arguments: args });
+        }
+        if (result && result.isError) throw new Error("Tool returned an error");
+        return result;
       }
 
       function unwrap(result) {
-        if (!result || typeof result !== "object") return {};
+        if (!result || typeof result !== "object" || result.isError) return {};
         if (result.structuredContent && typeof result.structuredContent === "object") {
           return result.structuredContent;
+        }
+        // Some hosts retain only the MCP text content blocks.
+        if (Array.isArray(result.content)) {
+          for (const item of result.content) {
+            if (item.type !== "text") continue;
+            try {
+              const value = JSON.parse(item.text);
+              if (value && typeof value === "object" && !Array.isArray(value)) return value;
+            } catch (_) { /* Other text content is not report data. */ }
+          }
         }
         return result;
       }
 
-      function setProgress(value) {
-        const bounded = Math.max(0, Math.min(100, Math.round(value)));
-        progressEl.style.width = `${bounded}%`;
-        progressShell.setAttribute("aria-valuenow", String(bounded));
-      }
-
       function formatElapsed() {
-        const total = Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
-        const minutes = String(Math.floor(total / 60)).padStart(2, "0");
-        const seconds = String(total % 60).padStart(2, "0");
-        return `${minutes}:${seconds}`;
-      }
-
-      function estimatedProgress(seconds) {
-        if (seconds <= AVERAGE_DURATION_SECONDS) {
-          const ratio = Math.max(0, seconds) / AVERAGE_DURATION_SECONDS;
-          const eased = 1 - Math.pow(1 - ratio, 1.35);
-          return 8 + 86 * eased;
-        }
-        const overtime = seconds - AVERAGE_DURATION_SECONDS;
-        return Math.min(98, 94 + 4 * (1 - Math.exp(-overtime / 120)));
-      }
-
-      function estimatedPhase(seconds) {
-        if (seconds < 20) return "Daten werden vorbereitet";
-        if (seconds < 70) return "Register- und Finanzdaten werden geprüft";
-        if (seconds < AVERAGE_DURATION_SECONDS) return "Risikoindikatoren werden ausgewertet";
-        if (seconds < AVERAGE_DURATION_SECONDS + 30) return "Boniscore wird finalisiert";
-        return "Abschluss dauert etwas länger als üblich";
+        const seconds = startedAt === null ? 0 : Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
+        return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
       }
 
       function tick() {
-        if (stopped) return;
-        const seconds = (Date.now() - startedAt) / 1000;
-        const estimate = Math.round(estimatedProgress(seconds));
-        setProgress(estimate);
-        phaseEl.textContent = estimatedPhase(seconds);
-        elapsedEl.textContent = `${estimate} % · ${formatElapsed()} / Ø 02:00`;
+        if (stopped || startedAt === null) return;
+        elapsedEl.textContent = `${formatElapsed()} vergangen`;
+        el("note").textContent = Date.now() - startedAt > 120000
+          ? "Die Verarbeitung dauert länger als üblich. Bitte keinen zweiten Bericht starten."
+          : "Meist 30–120 Sekunden. Wir aktualisieren den Status automatisch.";
       }
 
-      function statusCopy(status) {
-        if (["queued", "pending"].includes(status)) {
-          return ["In Warteschlange", "Der Bericht ist eingeplant und startet in Kürze.", "Auf Verarbeitung warten"];
-        }
-        return ["Berechnung läuft", "Register-, Finanz- und Risikodaten werden ausgewertet.", "Boniscore wird berechnet"];
+      function setStep(index) {
+        ["stepRequested", "stepRunning", "stepReady"].forEach((id, i) => {
+          el(id).classList.toggle("active", i === index);
+          el(id).classList.toggle("done", i < index);
+          if (i === index) el(id).setAttribute("aria-current", "step");
+          else el(id).removeAttribute("aria-current");
+        });
       }
 
-      function renderStatus(payload) {
-        const data = unwrap(payload);
-        jobId = data.job_id || jobId;
-        reportId = data.report_id || reportId;
-        const nestedStatus = data.final_status && data.final_status.status;
-        const status = String(data.status || nestedStatus || lastStatus || "queued").toLowerCase();
-        lastStatus = status;
-
-        if (data.report) {
-          renderReport(data.report);
-          return;
-        }
-        if (data.done && ["completed", "finished"].includes(status) && reportId) {
-          fetchReport();
-          return;
-        }
-        if (["failed", "error", "cancelled", "canceled"].includes(status)) {
-          fail("Die Berechnung konnte nicht abgeschlossen werden. Die Details erscheinen im Chat.");
-          return;
-        }
-
-        const copy = statusCopy(status);
-        stateEl.textContent = copy[0];
-        messageEl.textContent = copy[1];
-        phaseEl.textContent = copy[2];
+      function clearPolling() {
+        window.clearTimeout(pollTimer);
+        pollTimer = null;
       }
 
-      function decisionText(report) {
-        const label = report.score_details && report.score_details.label;
-        if (label) return String(label);
-        const result = String(report.credit_assessment_result || "").toUpperCase();
-        return ({ APPROVE: "Freigabe empfohlen", REVIEW: "Manuelle Prüfung empfohlen", DECLINE: "Ablehnung empfohlen" })[result] || "Bericht abgeschlossen";
+      function pause(message) {
+        clearPolling();
+        card.classList.add("paused");
+        stateEl.textContent = "Live-Status pausiert";
+        messageEl.textContent = message;
+        retry.hidden = false;
+        reportSize();
       }
 
-      function formatLimit(value) {
-        if (value === null || value === undefined || value === "") return "";
-        const amount = Number(value);
-        if (!Number.isFinite(amount)) return `Kreditlimit: ${String(value)}`;
-        return `Kreditlimit: ${new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(amount)}`;
+      function fail(message) {
+        if (stopped || disposed) return;
+        stopped = true;
+        clearPolling();
+        card.classList.remove("paused");
+        card.classList.add("failed");
+        card.setAttribute("aria-busy", "false");
+        stateEl.textContent = "Nicht abgeschlossen";
+        titleEl.textContent = "Bericht nicht abgeschlossen";
+        messageEl.textContent = message;
+        phaseEl.textContent = "Details im Chat";
+        elapsedEl.textContent = formatElapsed();
+        el("note").textContent = "Es wurde kein weiterer Bericht gestartet.";
+        retry.hidden = true;
+        reportSize();
       }
 
       function renderReport(payload) {
         const report = unwrap(payload);
+        // Never render error envelopes or malformed responses as successful reports.
+        if (!("score" in report) && !("credit_assessment_result" in report)) {
+          throw new Error("Missing report data");
+        }
+        reportId = report.report_id || reportId;
         stopped = true;
-        if (pollTimer) window.clearTimeout(pollTimer);
-        if (bootstrapTimer) window.clearInterval(bootstrapTimer);
+        clearPolling();
+        card.classList.remove("paused", "failed");
         card.classList.add("complete");
+        card.setAttribute("aria-busy", "false");
         stateEl.textContent = "Fertig";
         titleEl.textContent = "Boniscore liegt vor";
-        messageEl.textContent = "Die Bonitätsprüfung wurde erfolgreich abgeschlossen.";
-        phaseEl.textContent = "Ergebnis bereit · abgeschlossen";
-        elapsedEl.textContent = `100 % · ${formatElapsed()}`;
-        setProgress(100);
-        scoreEl.textContent = report.score === null || report.score === undefined ? "—" : String(report.score);
-        decisionEl.textContent = decisionText(report);
-        limitEl.textContent = formatLimit(report.credit_limit);
+        messageEl.textContent = "Die Bonitätsprüfung wurde abgeschlossen.";
+        phaseEl.textContent = "Ergebnis bereit";
+        elapsedEl.textContent = formatElapsed();
+        progressShell.setAttribute("aria-valuenow", "100");
+        progressShell.setAttribute("aria-label", "Boniscore-Bericht abgeschlossen");
+        setStep(2);
+        el("score").textContent = report.score === null || report.score === undefined ? "—" : String(report.score);
+        const result = String(report.credit_assessment_result || "").toUpperCase();
+        el("decision").textContent = (report.score_details && report.score_details.label)
+          || ({ APPROVE: "Freigabe empfohlen", REVIEW: "Manuelle Prüfung empfohlen", DECLINE: "Ablehnung empfohlen" })[result]
+          || "Bericht abgeschlossen";
+        const limit = report.credit_limit;
+        el("limit").textContent = limit === null || limit === undefined || limit === "" ? "" :
+          `Kreditlimit: ${Number.isFinite(Number(limit)) ? new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(Number(limit)) : String(limit)}`;
+        el("note").textContent = "Die ausführliche Auswertung finden Sie im Chat.";
+        retry.hidden = true;
         if (window.openai && typeof window.openai.sendFollowUpMessage === "function" && reportId) {
           openChat.style.display = "block";
         }
-      }
-
-      function fail(message) {
-        stopped = true;
-        if (pollTimer) window.clearTimeout(pollTimer);
-        if (bootstrapTimer) window.clearInterval(bootstrapTimer);
-        card.classList.add("failed");
-        stateEl.textContent = "Fehler";
-        titleEl.textContent = "Bericht nicht abgeschlossen";
-        messageEl.textContent = message;
-        phaseEl.textContent = "Bitte Chat-Antwort prüfen";
-        elapsedEl.textContent = formatElapsed();
+        reportSize();
       }
 
       async function fetchReport() {
-        if (!reportId || stopped || fetchingReport) return;
+        if (!reportId || stopped || fetchingReport || disposed) return;
         fetchingReport = true;
         stateEl.textContent = "Ergebnis wird geladen";
         phaseEl.textContent = "Bericht abrufen";
         try {
           const result = await callTool("get_report", { report_id: reportId });
-          renderReport(result);
-        } catch (error) {
-          fail("Der fertige Bericht konnte in der Karte nicht geladen werden. Die Chat-Antwort bleibt verfügbar.");
+          if (!disposed && !stopped) renderReport(result);
+        } catch (_) {
+          if (!disposed && !stopped) pause("Der Bericht ist fertig. Die Live-Anzeige konnte das Ergebnis noch nicht laden.");
+        } finally {
+          fetchingReport = false;
+        }
+      }
+
+      function renderStatus(payload) {
+        const data = unwrap(payload);
+        if (stopped || disposed) return;
+        if (payload && payload.isError) {
+          fail("Die Anfrage konnte nicht abgeschlossen werden. Bitte die Chat-Antwort prüfen.");
+          return;
+        }
+        if (!data.job_id && !data.report_id && !data.status && !data.report && !data.final_status) {
+          throw new Error("Missing job data");
+        }
+        jobId = data.job_id || jobId;
+        reportId = data.report_id || (data.final_status && data.final_status.report_id) || reportId;
+        if (startedAt === null) startedAt = Date.now();
+        if (Number.isFinite(data.elapsed_seconds) && data.elapsed_seconds >= 0) {
+          startedAt = Math.min(startedAt, Date.now() - data.elapsed_seconds * 1000);
+        }
+        const status = String((data.final_status && data.final_status.status) || data.status || "queued").toLowerCase().trim();
+        if (["failed", "error", "cancelled", "canceled"].includes(status)) {
+          fail("Die Berechnung wurde abgebrochen oder ist fehlgeschlagen. Die Details erscheinen im Chat.");
+          return;
+        }
+        if (data.report) { renderReport(data.report); return; }
+        if (["completed", "finished"].includes(status)) {
+          clearPolling();
+          if (reportId) void fetchReport();
+          else pause("Die Berechnung ist abgeschlossen. Die Berichtskennung fehlt; bitte die Chat-Antwort prüfen.");
+          return;
+        }
+        card.classList.remove("paused");
+        retry.hidden = true;
+        titleEl.textContent = "Boniscore-Bericht gestartet";
+        const queued = ["queued", "pending"].includes(status);
+        stateEl.textContent = queued ? "In Warteschlange" : "In Bearbeitung";
+        messageEl.textContent = queued ? "Ihr Bericht ist eingeplant und startet in Kürze." : "Die Unternehmensdaten werden für Ihren Boniscore ausgewertet.";
+        phaseEl.textContent = queued ? "Auf Verarbeitung warten" : "Boniscore wird berechnet";
+        setStep(queued ? 0 : 1);
+        tick();
+      }
+
+      function schedulePoll() {
+        if (!stopped && !disposed && jobId && !pollTimer && !polling && !fetchingReport && !card.classList.contains("paused")) {
+          pollTimer = window.setTimeout(poll, 3000);
         }
       }
 
       async function poll() {
-        if (stopped || !jobId) return;
+        pollTimer = null;
+        if (stopped || disposed || !jobId || polling || fetchingReport) return;
+        polling = true;
         try {
           const result = await callTool("get_job_status", { job_id: jobId, wait_seconds: 0 });
           renderStatus(result);
-        } catch (error) {
-          messageEl.textContent = "Die Live-Anzeige verbindet sich erneut. Die Berechnung läuft weiter.";
-        }
-        if (!stopped) pollTimer = window.setTimeout(poll, 3000);
+          errors = 0;
+        } catch (_) {
+          errors += 1;
+          if (!disposed && !stopped) {
+            if (errors >= 3) pause("Der Live-Status ist gerade nicht erreichbar. Sie können ihn erneut laden; der Bericht wird dabei nicht neu erstellt.");
+            else messageEl.textContent = "Die Live-Anzeige verbindet sich erneut. Der Auftrag bleibt unverändert.";
+          }
+        } finally { polling = false; }
+        schedulePoll();
       }
 
       function acceptInitial(payload) {
         const data = unwrap(payload);
-        if (!data || (!data.job_id && !data.report_id && !data.report)) return;
-        if (bootstrapTimer) {
-          window.clearInterval(bootstrapTimer);
-          bootstrapTimer = null;
-        }
-        renderStatus(data);
-        if (!stopped && jobId && !pollTimer) pollTimer = window.setTimeout(poll, 500);
+        if (payload && payload.isError) { renderStatus(payload); return; }
+        if (!data.job_id && !data.report_id && !data.report) return;
+        window.clearInterval(bootstrapTimer);
+        bootstrapTimer = null;
+        try { renderStatus(payload); schedulePoll(); }
+        catch (_) { pause("Die Live-Anzeige hat noch keine gültigen Berichtsdaten erhalten. Bitte die Chat-Antwort prüfen."); }
       }
 
       function acceptOpenAIState(globals) {
         if (!globals || typeof globals !== "object") return;
         const metadata = globals.toolResponseMetadata || {};
-        const mcpResult = metadata.mcp_tool_result || metadata.mcpToolResult;
-        const callResult = metadata.call_tool_result || metadata.callToolResult;
-        const candidates = [
-          globals.toolOutput,
-          mcpResult && mcpResult.structuredContent,
-          mcpResult,
-          callResult && callResult.structuredContent,
-          callResult
-        ];
-        for (const candidate of candidates) {
-          const data = unwrap(candidate);
-          if (data && (data.job_id || data.report_id || data.report)) {
-            acceptInitial(data);
-            return;
-          }
+        for (const candidate of [globals.toolOutput, metadata.mcp_tool_result, metadata.mcpToolResult, metadata.call_tool_result, metadata.callToolResult]) {
+          if (candidate) acceptInitial(candidate);
         }
       }
 
+      function dispose() {
+        disposed = true;
+        clearPolling();
+        window.clearInterval(bootstrapTimer);
+        window.clearInterval(tickTimer);
+        if (resizeObserver) resizeObserver.disconnect();
+        for (const pending of pendingRequests.values()) {
+          window.clearTimeout(pending.timer);
+          pending.reject(new Error("View closed"));
+        }
+        pendingRequests.clear();
+      }
+
       window.addEventListener("message", (event) => {
-        if (event.source !== window.parent) return;
+        if (event.source !== window.parent || disposed) return;
         const message = event.data;
         if (!message || message.jsonrpc !== "2.0") return;
-
-        if (message.id !== undefined && pendingRequests.has(message.id)) {
+        if (!message.method && message.id !== undefined && pendingRequests.has(message.id)) {
           const pending = pendingRequests.get(message.id);
           pendingRequests.delete(message.id);
+          window.clearTimeout(pending.timer);
           if (message.error) pending.reject(message.error);
           else pending.resolve(message.result);
           return;
         }
-
-        if (message.method === "ui/notifications/tool-result") {
-          acceptInitial(message.params);
+        if (message.method === "ui/notifications/tool-result") acceptInitial(message.params);
+        if (message.method === "ui/notifications/tool-input") {
+          const name = message.params && message.params.arguments && message.params.arguments.company_name;
+          if (typeof name === "string" && name) { el("company").textContent = name; el("company").hidden = false; }
+        }
+        if (message.method === "ui/notifications/host-context-changed") applyContext(message.params);
+        if (message.method === "ui/notifications/tool-cancelled") fail("Die Anfrage wurde abgebrochen. Bitte den Status im Chat prüfen.");
+        if (message.method === "ping") window.parent.postMessage({ jsonrpc: "2.0", id: message.id, result: {} }, "*");
+        if (message.method === "ui/resource-teardown") {
+          dispose();
+          window.parent.postMessage({ jsonrpc: "2.0", id: message.id, result: {} }, "*");
         }
       }, { passive: true });
-
-      window.addEventListener("openai:set_globals", (event) => {
-        const globals = event.detail && event.detail.globals;
-        acceptOpenAIState(globals || window.openai);
-      }, { passive: true });
-
-      openChat.addEventListener("click", () => {
-        if (!reportId || !window.openai || typeof window.openai.sendFollowUpMessage !== "function") return;
-        window.openai.sendFollowUpMessage({
-          prompt: `Bitte erläutere den Boniscore-Bericht ${reportId} und gib eine kurze Kreditentscheidung.`,
-          scrollToBottom: true
-        });
+      window.addEventListener("openai:set_globals", (event) => acceptOpenAIState((event.detail && event.detail.globals) || window.openai), { passive: true });
+      window.addEventListener("pagehide", dispose);
+      retry.addEventListener("click", async () => {
+        retry.hidden = true;
+        card.classList.remove("paused");
+        errors = 0;
+        if (reportId && !jobId) { await fetchReport(); return; }
+        if (jobId) { await poll(); return; }
+        try {
+          await initializeBridge();
+          acceptOpenAIState(window.openai);
+          if (!jobId && !stopped) pause("Die Verbindung steht. Die Live-Anzeige wartet auf den Auftrag aus dem Chat.");
+        } catch (_) { pause("Die Live-Anzeige konnte nicht verbunden werden. Bitte die Chat-Antwort prüfen."); }
       });
-
-      window.setInterval(tick, 1000);
-      tick();
-      acceptOpenAIState(window.openai);
+      openChat.addEventListener("click", async () => {
+        if (!reportId || !window.openai || typeof window.openai.sendFollowUpMessage !== "function") return;
+        try {
+          await window.openai.sendFollowUpMessage({ prompt: `Bitte erläutere den Boniscore-Bericht ${reportId} und gib eine kurze Kreditentscheidung.`, scrollToBottom: true });
+        } catch (_) { el("note").textContent = "Bitte fragen Sie im Chat nach der Auswertung dieses Berichts."; }
+      });
+      const tickTimer = window.setInterval(tick, 1000);
+      if (typeof ResizeObserver !== "undefined") {
+        resizeObserver = new ResizeObserver(reportSize);
+        resizeObserver.observe(document.body);
+      }
+      void initializeBridge().catch(() => {
+        if (!disposed && !jobId && !stopped) pause("Die Live-Anzeige wartet auf die Verbindung. Die Chat-Antwort bleibt verfügbar.");
+      });
       let bootstrapAttempts = 0;
       bootstrapTimer = window.setInterval(() => {
         bootstrapAttempts += 1;
         acceptOpenAIState(window.openai);
-        if (jobId || bootstrapAttempts >= 80) {
+        if (jobId || stopped || bootstrapAttempts >= 80) {
           window.clearInterval(bootstrapTimer);
           bootstrapTimer = null;
+          if (!jobId && !stopped) pause("Noch keine Auftragsdaten empfangen. Bitte die Chat-Antwort prüfen.");
         }
       }, 250);
+      acceptOpenAIState(window.openai);
     })();
   </script>
 </body>

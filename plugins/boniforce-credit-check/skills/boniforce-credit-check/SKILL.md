@@ -47,7 +47,7 @@ Once a `report_id` is available, call `get_credit_intelligence(report_id)` exact
 
 - Do not call `get_report`, `get_company_details`, `get_report_financial_data`, or `get_report_financial_analysis` separately when the aggregate tool returned that layer.
 - Fall back to separate calls only if `get_credit_intelligence` is unavailable or its `errors` object marks a required layer unavailable.
-- Keep `include_news=false` by default. Set it to true only when the user requests current sector news or a briefing.
+- Keep `include_news=false` for a quick check. For a full audit, comprehensive review, or sector briefing, set `include_news=true` in that same aggregate call. Use all returned news developments, watchlist items, publication windows and citations; distinguish a source's analysis from verified facts.
 
 A 404 from either financial tool means that an indexed Bundesanzeiger filing is unavailable. Continue with the Boniscore and clearly mark the missing layer.
 
@@ -83,6 +83,18 @@ Read [references/output-format.md](references/output-format.md) and use the deci
 - Keep the first screen concise, then provide evidence tables and a short monitoring section.
 - Present the professional result directly. Do not narrate which tools ran, which optional sections were skipped, or what else the user could ask to see.
 - Match the user's language. Explain that the result is decision support, not a guarantee.
+
+### Financial dashboard and full review
+
+`get_credit_intelligence` renders an embedded dashboard in MCP Apps hosts: overview, selectable financial charts, branch trends, a source-linked review, and the full underlying data. Its `review` field contains deterministic calculations, coverage checks and source references. Keep the narrative useful in text-only clients as well.
+
+For a full audit/review, follow [references/full-review.md](references/full-review.md). Write a complete evidence-backed narrative after the dashboard; do not stop at scores, charts, or generic strengths/risks. Consider every returned data layer, including individual report assessments, firmographics, filings, ratios, sector dimensions, insolvencies and cited news. Distinguish observations, calculated values, interpretation and open checks. A dashboard coverage count is not a confidence score. Never call this a certified audit or claim external-source completeness.
+
+- Use exact years, units and currencies. Never assume EUR or thousands when absent. Never turn a missing value into zero, or join incompatible units in a trend.
+- Compare the latest two available years and the wider trajectory; show absolute change, especially when profit crosses zero. Call a change year-on-year only when the years are consecutive.
+- Treat conflicting figures and older source dates as explicit limitations. Preserve loss signs. Do not interpret a ratio's numeric score without its returned definition/label.
+- Keep the Boniforce recommendation unchanged. Do not translate the branch score into a company default probability or infer a company percentile from the branch rank.
+- Ownership is included only if already returned through authorized calls; do not spend additional credits merely to fill the review.
 
 ## Failure handling
 

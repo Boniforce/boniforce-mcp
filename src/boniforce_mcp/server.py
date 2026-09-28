@@ -33,6 +33,8 @@ from pathlib import Path
 from . import auth, rest_api, storage
 from .boniforce_client import BoniforceClient, BoniforceError
 from .config import get_settings
+from .credit_review import build_credit_review
+from .review_ui import CREDIT_REVIEW_HTML, CREDIT_REVIEW_UI_URI
 from .progress_ui import BONISCORE_PROGRESS_HTML, BONISCORE_PROGRESS_UI_URI
 from .rest_api import SECTORBENCH_BRANCH_KEYS, annotate_job_outcome
 from .sectorbench_client import SectorbenchClient, SectorbenchError
@@ -277,7 +279,13 @@ def _make_mcp() -> FastMCP:
         BONISCORE_PROGRESS_UI_URI,
         mime_type="text/html;profile=mcp-app",
         meta={
-            "ui": {"prefersBorder": True},
+            "ui": {
+                "prefersBorder": True,
+                "csp": {"connectDomains": [], "resourceDomains": [], "frameDomains": []},
+            },
+            "openai/widgetCSP": {
+                "connect_domains": [], "resource_domains": [], "frame_domains": [],
+            },
             "openai/widgetDescription": (
                 "Live-Status und Ergebnis einer laufenden Boniscore-Prüfung."
             ),
@@ -287,6 +295,20 @@ def _make_mcp() -> FastMCP:
     def boniscore_progress_ui() -> str:
         """Render the live Boniscore progress card for MCP Apps clients."""
         return BONISCORE_PROGRESS_HTML
+
+    @mcp.resource(
+        CREDIT_REVIEW_UI_URI,
+        mime_type="text/html;profile=mcp-app",
+        meta={
+            "ui": {"prefersBorder": True, "csp": {"connectDomains": [], "resourceDomains": [], "frameDomains": []}},
+            "openai/widgetCSP": {"connect_domains": [], "resource_domains": [], "frame_domains": []},
+            "openai/widgetDescription": "Finanzdiagramme, Branchenvergleich und datenbasierter Prüfbericht mit Quellen und Datenlücken.",
+            "openai/widgetPrefersBorder": True,
+        },
+    )
+    def credit_review_ui() -> str:
+        """Interactive financial and sector review of the existing evidence pack."""
+        return CREDIT_REVIEW_HTML
 
     async def _user_only() -> str:
         """Validate the JWT and return the user_id. No Boniforce key required.
@@ -778,7 +800,7 @@ def _make_mcp() -> FastMCP:
         """Capture one optional enrichment layer without failing the whole brief."""
         try:
             return await awaitable, None
-        except BoniforceError as exc:
+        except (BoniforceError, SectorbenchError) as exc:
             return None, {"status": exc.status, "detail": exc.body}
         except Exception as exc:
             return None, {"status": 502, "detail": str(exc)}
@@ -790,7 +812,14 @@ def _make_mcp() -> FastMCP:
             "destructiveHint": False,
             "idempotentHint": True,
             "openWorldHint": True,
-        }
+        },
+        meta={
+            "ui": {"resourceUri": CREDIT_REVIEW_UI_URI, "visibility": ["model", "app"]},
+            "openai/outputTemplate": CREDIT_REVIEW_UI_URI,
+            "openai/widgetAccessible": True,
+            "openai/toolInvocation/invoking": "Finanz- und Branchenanalyse wird erstellt …",
+            "openai/toolInvocation/invoked": "Finanzdiagramme und Prüfbericht bereit",
+        },
     )
     async def get_credit_intelligence(
         report_id: str,
@@ -804,11 +833,19 @@ def _make_mcp() -> FastMCP:
         analysis concurrently. When an explicit WZ code identifies a covered
         Sectorbench branch (or branch_key is supplied), also retrieves the
         current sector score, 12-month score trend, and insolvency trend in
-        parallel. Set include_news only for a requested sector briefing.
+        parallel. Set include_news=True for a full audit/review or sector briefing.
 
         Prefer this tool after a report_id is available instead of calling each
         enrichment tool separately. Individual unavailable layers are returned
         under errors while the remaining evidence is preserved.
+        Renders interactive financial charts and a source-linked review. The
+        `review` field contains computed comparisons, not a new credit score.
+        Also write a full narrative assessment using all returned evidence:
+        report assessments, company details, annual financials/ratios, branch
+        dimensions/history, insolvencies and cited news when included. Separate
+        source facts, derived calculations and interpretation. Explain gaps,
+        stale data and contradictory signals. Never blend the two scores or
+        describe this as a certified audit. Do not repeat successful reads.
         """
         _, token = await _user_token()
         if branch_key is not None:
@@ -877,6 +914,7 @@ def _make_mcp() -> FastMCP:
 
         if not bundle["errors"]:
             bundle.pop("errors")
+        bundle["review"] = build_credit_review(bundle)
         return bundle
 
     # ---- Sectorbench branch-data tools ----

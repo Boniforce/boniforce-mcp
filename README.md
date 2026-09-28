@@ -66,7 +66,7 @@ Custom GPT or import an OpenAPI schema for this setup.
 
 ### 1. Download the plugin
 
-[**Download Boniforce plugin v0.4.0 (ZIP)**](https://github.com/Boniforce/boniforce-mcp/raw/refs/heads/main/releases/boniforce-credit-check-plugin-0.4.0.zip)
+[**Download Boniforce plugin v0.5.0 (ZIP)**](https://github.com/Boniforce/boniforce-mcp/raw/refs/heads/main/releases/boniforce-credit-check-plugin-0.5.0.zip)
 
 Save the `.zip` file without extracting it. Use the **plugin** archive, which
 contains the Boniforce workflow and MCP connection configuration.
@@ -123,6 +123,14 @@ advanced search **5**, and a new Boniscore report **75**. Direct financial data
 and analysis cost **25 / 50**; uncached ownership retrieval costs **25**.
 New reports usually take **30–120 seconds**. Compatible clients show a live
 progress card; other clients use text results.
+
+The embedded card requires an **MCP app connection**. The Custom GPT Actions
+integration is a separate interface and does not load this card. See
+[embedded progress setup and verification](docs/EMBEDDED_PROGRESS_UI.md).
+
+Completed reports also support an [interactive financial and branch review](docs/FINANCIAL_REVIEW.md):
+annual financial charts, ratio tables, sector trends and insolvencies,
+source-linked findings, data gaps, and a detailed narrative when requested.
 
 For screenshots, updates, and troubleshooting, see the
 [complete ChatGPT plugin tutorial](docs/CHATGPT_PLUGIN_INSTALL.md).
@@ -384,7 +392,7 @@ The compose file registers a `Host(${MCP_HOST})` router on the existing
 ```bash
 python3.11 -m venv .venv && . .venv/bin/activate
 pip install -e ".[dev]"
-pytest                        # 10 tests
+pytest
 uvicorn boniforce_mcp.server:app --port 8000
 npx @modelcontextprotocol/inspector http://localhost:8000/mcp
 ```

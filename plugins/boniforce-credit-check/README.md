@@ -1,4 +1,4 @@
-# Boniforce Bonitätsprüfung — 0.4.0
+# Boniforce Bonitätsprüfung — 0.5.0
 
 German company credit reports, financial statements, and SectorBench industry
 context in ChatGPT and Codex. A Boniforce account and OAuth connection are required.
@@ -38,6 +38,13 @@ old, and discloses charges before authorized paid calls. New reports usually
 take 30–120 seconds. Compatible hosts render a live card; other clients use
 the same tools with text results. Results support human review and do not
 grant credit or guarantee payment. No credit sales or checkout are included.
+
+The result dashboard includes selectable annual financial charts, branch-score
+and insolvency histories, branch dimensions, news with supplied citations,
+source-linked review findings and expandable underlying data. Ask for a full
+review to receive a detailed company-and-sector assessment in the chat too.
+Missing figures stay missing, units are preserved, and the two scores are not
+blended. This is a review of supplied evidence, not a certified audit.
 
 ## Public distribution
 

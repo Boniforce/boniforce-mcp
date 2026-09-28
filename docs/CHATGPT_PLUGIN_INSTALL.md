@@ -7,10 +7,10 @@ below follow the current interface shown in the reference screenshot.
 
 - A ChatGPT account/workspace with **Plugins** and archive upload available.
 - A Boniforce account and API key for the OAuth connection.
-- The [Boniforce plugin v0.4.0 ZIP](https://github.com/Boniforce/boniforce-mcp/raw/refs/heads/main/releases/boniforce-credit-check-plugin-0.4.0.zip).
+- The [Boniforce plugin v0.5.0 ZIP](https://github.com/Boniforce/boniforce-mcp/raw/refs/heads/main/releases/boniforce-credit-check-plugin-0.5.0.zip).
 
-The download is **plugin v0.4.0**. Both manifests inside the ZIP declare
-`0.4.0`; the server has its own independent version number. Keep the ZIP intact;
+The download is **plugin v0.5.0**. Both manifests inside the ZIP declare
+`0.5.0`; the server has its own independent version number. Keep the ZIP intact;
 do not upload the GitHub repository's **Download ZIP** or a skills-only bundle.
 
 ## 1. Open the installation menu

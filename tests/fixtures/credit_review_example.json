@@ -1,0 +1,34 @@
+{
+  "report_id": "demo-report",
+  "report": {
+    "report_id": "demo-report", "score": 68, "credit_limit": 25000, "currency": "EUR", "credit_assessment_result": "REVIEW",
+    "created_at": "2026-09-28T09:00:00Z", "score_details": {"label": "Prüfung empfohlen"},
+    "company": {"name": "Mustertechnik GmbH · Beispieldaten"},
+    "assessments": [
+      {"type": "Kapitalbasis", "value": 1, "details": [{"key": "equity", "label": "Eigenkapital", "value": "Positive Kapitalbasis; aktuelles Geschäftsjahr prüfen."}]},
+      {"type": "Ergebnisentwicklung", "value": 2, "details": [{"key": "profit", "label": "Ertragskraft", "value": "Jahresergebnis im letzten Abschluss rückläufig."}]}
+    ]
+  },
+  "company_details": {"name": "Mustertechnik GmbH · Beispieldaten", "address": "Beispielstraße 1, Musterstadt", "register_info": {"register_type": "HRB", "register_number": "DEMO", "register_court": "Beispielgericht"}, "industry_codes": {"WZ2025": [{"code": "29.10"}]}, "firmographics": {"employees": 85, "legal_type": "GmbH", "foundation_year": 2008}},
+  "financial_data": {"currency": "EUR", "unit": "Einheiten", "created_at": "2026-09-28T09:00:00Z", "financials": [
+    {"jahr": 2022, "jahresueberschuss": 140000, "eigenkapital": 1800000, "verbindlichkeiten": 2800000, "umlaufvermoegen": 1900000, "bilanzsumme": 5200000, "forderungen": 940000, "liquide_mittel": 410000},
+    {"jahr": 2023, "jahresueberschuss": 210000, "eigenkapital": 2010000, "verbindlichkeiten": 2950000, "umlaufvermoegen": 2200000, "bilanzsumme": 5650000, "forderungen": 1150000, "liquide_mittel": 470000},
+    {"jahr": 2024, "jahresueberschuss": 250000, "eigenkapital": 2260000, "verbindlichkeiten": 3200000, "umlaufvermoegen": 2440000, "bilanzsumme": 6100000, "forderungen": 1320000, "liquide_mittel": 460000},
+    {"jahr": 2025, "jahresueberschuss": 90000, "eigenkapital": 2350000, "verbindlichkeiten": 3700000, "umlaufvermoegen": 2650000, "bilanzsumme": 6650000, "forderungen": 1710000, "liquide_mittel": 280000}
+  ]},
+  "financial_analysis": {"created_at": "2026-09-28T09:00:00Z", "financials": [
+    {"jahr": 2024, "ratios": [{"name": "Eigenkapitalquote", "value": 37.05, "unit": "%", "score": 72}]},
+    {"jahr": 2025, "ratios": [{"name": "Eigenkapitalquote", "value": 35.34, "unit": "%", "score": 67}, {"name": "Liquidität 1. Grades", "value": 18.7, "unit": "%", "score": 42}]}
+  ]},
+  "sector_match": {"status": "verified", "confidence": "high", "branch_key": "automotive", "evidence": "WZ2025 29.10"},
+  "sector": {
+    "current": {"branch_key": "automotive", "branch_name_de": "Automobilindustrie", "composite_score": 44.8, "risk_level": "Weak", "confidence": "high", "rank": 8, "rank_delta": -1, "fetched_at": "2026-09-28T06:00:00Z", "dimensions": {"financial_health": 39, "market_dynamics": 35, "regulatory_climate": 48, "innovation_index": 64, "labor_market": 47, "external_risk": 36}},
+    "history": {"points": [
+      {"reference_period": "2026-04-01", "composite_score": 55.1}, {"reference_period": "2026-05-01", "composite_score": 53.6}, {"reference_period": "2026-06-01", "composite_score": 51.4}, {"reference_period": "2026-07-01", "composite_score": 49.2}, {"reference_period": "2026-08-01", "composite_score": 46.5}, {"reference_period": "2026-09-01", "composite_score": 44.8}
+    ]},
+    "insolvency_history": {"points": [
+      {"reference_period": "2026-04-01", "total_cases": 24}, {"reference_period": "2026-05-01", "total_cases": 28}, {"reference_period": "2026-06-01", "total_cases": 27}, {"reference_period": "2026-07-01", "total_cases": 31}, {"reference_period": "2026-08-01", "total_cases": 34}, {"reference_period": "2026-09-01", "total_cases": 37}
+    ]},
+    "news": {"branch_key": "automotive", "window_start": "2026-09-01", "window_end": "2026-09-28", "published_at": "2026-09-28T06:00:00Z", "executive_overview": "Fiktives Beispielszenario: Schwächere Aufträge und steigende Finanzierungskosten belasten die Branche.", "key_developments": [{"title": "Auftragslage unter Druck · Beispiel", "summary": "Dieses Szenario demonstriert die Darstellung von Branchentreibern und ist keine reale Nachricht.", "impact": "Möglicher Druck auf Auslastung und Margen; konkrete Betroffenheit muss geprüft werden.", "citations": []}], "risk_watchlist": [{"item": "Auslastung und Zahlungsziele · fiktives Beispiel", "severity": "medium"}], "citations": []}
+  }
+}

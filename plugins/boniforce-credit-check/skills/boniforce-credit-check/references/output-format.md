@@ -2,6 +2,11 @@
 
 Render only sections supported by returned data. Replace bracketed placeholders with actual values; never print placeholder text.
 
+The MCP aggregate tool also renders an interactive dashboard with actual
+financial and sector charts. Use the narrative below alongside it. When the
+user requests a full audit or detailed review, expand the narrative according
+to [full-review.md](full-review.md); a score summary alone is insufficient.
+
 ## Default Markdown structure
 
 ```markdown
