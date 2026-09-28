@@ -5,11 +5,45 @@ Verified against official documentation and the signed-in Free account on
 **Desktop only / Open in desktop app**, with the raw MCP endpoint listed.
 Installation succeeded, but this is not a working ChatGPT web connection.
 
+## Use it in the ChatGPT desktop app (verified on Free)
+
+Verified on 28 September 2026 with the Free account in the macOS ChatGPT
+desktop app: the installed v0.5.0 plugin called `list_reports` in **Work**
+mode and returned the account's existing reports without spending credits.
+The server log showed the OAuth handshake, `initialize` and tool calls.
+
+1. Click **Neuer Chat** (New chat).
+2. Select **Work** in the **Chat | Work** toggle at the top. Do not use **Chat**.
+3. Select **Boniforce Bonitätsprüfung** and send, for example:
+   `Zeige meine vorhandenen Boniforce-Berichte, ohne Credits auszugeben.`
+
+| Mode | Boniforce plugin | Server traffic | Result |
+|---|---|---|---|
+| **Work** | Selectable | OAuth, `initialize`, `tools/list`, tool calls | 159 existing reports listed, 0 credits |
+| **Chat** | Not listed under **+ → Plugins** or `@` | None | "nicht als nutzbares Plugin verfügbar"; no data |
+
+Both rows were tested in fresh chats on 28 September 2026 while watching the
+production server log. In Chat mode the uploaded plugin does not appear in the
+plugin picker, and a prompt naming it produced no request to
+`mcp.boniforce.de`. The `@` search in Chat mode may show a separate GPT such as
+"Boniforce B2B Bonitätsprüfung"; that is not this plugin.
+
+The mode is chosen per chat. An existing Chat-mode conversation does not gain
+the tools after the fact; start a new chat in Work mode. Chat-mode and web
+access require a registered app (developer mode, not offered on Free) or an
+approved public directory listing.
+
+**Re-uploading:** the Free account already holds the imported plugin under
+**Plugins → Persönlich**. Uploading an archive with the same `name` and
+`version` fails with "Plugin konnte nicht hinzugefügt werden. Versuche es
+erneut." Install the existing entry with **+**, or uninstall the old entry /
+bump `version` in `plugin.json` before uploading a new ZIP.
+
 ## Choose the correct distribution
 
 | Package / route | Purpose | Status |
 |---|---|---|
-| [Direct-MCP v0.5.0 ZIP](https://github.com/Boniforce/boniforce-mcp/raw/refs/heads/main/releases/boniforce-credit-check-plugin-0.5.0.zip) | Desktop/Codex, with per-user OAuth | Tools responded in Codex; desktop-only in the inspected Free web account |
+| [Direct-MCP v0.5.0 ZIP](https://github.com/Boniforce/boniforce-mcp/raw/refs/heads/main/releases/boniforce-credit-check-plugin-0.5.0.zip) | Desktop/Codex, with per-user OAuth | Tools responded in Codex and in desktop-app **Work** mode on Free; not in Chat mode or on the web |
 | App-linked ChatGPT ZIP | References an existing registered Boniforce app | Builder ready; real app ID and web acceptance test required |
 | Public directory listing | Customer distribution, including eligible Free accounts | Requires OpenAI submission, approval and publication; Free eligibility must be verified |
 
@@ -98,7 +132,9 @@ Never bundle a shared API key or request the key in chat.
 
 | Symptom | Meaning / action |
 |---|---|
-| Installed, but Desktop only | Direct MCP declarations route the import to desktop; use the app-linked web build and verify the listing's capabilities. |
+| Installed, but Desktop only | Direct MCP declarations route the import to desktop; use the desktop app in Work mode, or the app-linked web build for the web. |
+| "nicht installiert / nicht als nutzbares Plugin verfügbar", web search instead of tools | The chat runs in **Chat** mode, where the uploaded plugin is unavailable and the server is never called. Start a new chat and select **Work**. |
+| "Plugin konnte nicht hinzugefügt werden" on upload | Same plugin `name` and `version` already imported; install it from **Persönlich**, or uninstall / bump `version` first. |
 | Required app unavailable | Check app publication, account eligibility and permissions; reinstalling the skill cannot grant access. |
 | OAuth reauthentication required / missing issuer in saved credentials | Reconnect through the host's OAuth flow, then retry in a new chat. The public server metadata currently advertises the correct issuer. |
 | Tool unavailable without a failed call | Do not infer that the server is down; inspect connection and tool availability. |

@@ -14,6 +14,14 @@ Open **Plugins → Add → Upload plugin archive**, select the Boniforce plugin
 ZIP without extracting it, and follow the installation prompts. Connect your
 Boniforce account through OAuth when prompted.
 
+In the ChatGPT desktop app, start a **new chat in Work mode** (the **Chat |
+Work** toggle at the top), then select Boniforce Bonitätsprüfung. In Chat mode
+the uploaded plugin is not available and Boniforce is never called.
+
+If an upload fails with "Plugin konnte nicht hinzugefügt werden", the same
+plugin name and version is already imported: install it from **Plugins →
+Persönlich**, or uninstall it first.
+
 If the workflow installs but tools are unavailable, use **Plugins → Add →
 Create MCP App** with `https://mcp.boniforce.de/mcp` and OAuth. Developer mode
 may be needed for that direct connection. Enter your API key only on the
